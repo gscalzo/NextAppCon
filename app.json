@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "NextAppCon Agenda",
+    "slug": "nextappcon-agenda",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {},
+    "scheme": "nextappcon",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {}
+      ]
+    ]
+  }
+}
