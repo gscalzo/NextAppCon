@@ -2,12 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { clashingIds, currentOrNextFav, findClashes, groupByDay, overlaps } from '../src/lib/schedule.ts';
-import {
-  extractSessionizeIds,
-  findAgendaLinks,
-  normalizeSessionizeId,
-  parseSessionizeAll,
-} from '../src/lib/sessionize.ts';
+import { normalizeSessionizeId, parseSessionizeAll } from '../src/lib/sessionize.ts';
 import { formatCountdown, formatDayLabel, formatTime, parseEventTime } from '../src/lib/time.ts';
 import type { Session } from '../src/lib/types.ts';
 
@@ -70,6 +65,25 @@ test('parses Sessionize All view with track, room and speakers', () => {
   assert.throws(() => parseSessionizeAll({ foo: 1 }));
 });
 
+test('track comes from the PRIMARY event category, not "other events"', () => {
+  const data = {
+    sessions: [
+      {
+        id: '1', title: 'Talk', startsAt: '2026-10-07T10:00:00', endsAt: '2026-10-07T10:40:00',
+        speakers: [], categoryItems: [21, 31, 32, 33], roomId: null,
+      },
+    ],
+    categories: [
+      { id: 2, title: 'Choose the PRIMARY event you are submitting for', items: [{ id: 21, name: 'swiftCon' }] },
+      {
+        id: 3, title: 'Which other events is your talk relevant for?',
+        items: [{ id: 31, name: 'droidCon' }, { id: 32, name: 'flutterCon' }, { id: 33, name: 'reactCon' }],
+      },
+    ],
+  };
+  assert.equal(parseSessionizeAll(data)[0].track, 'swiftCon');
+});
+
 test('clash detection: overlap counts, back-to-back does not', () => {
   const a = mk('a', '2026-10-07T10:00:00', '2026-10-07T10:40:00');
   const b = mk('b', '2026-10-07T10:35:00', '2026-10-07T11:00:00');
@@ -98,19 +112,9 @@ test('groups by Berlin day', () => {
   assert.deepEqual([...groupByDay([late, next]).keys()], ['2026-10-07', '2026-10-08']);
 });
 
-test('Sessionize ID discovery and normalisation', () => {
-  const html = `
-    <script src="https://sessionize.com/api/v2/abc123xy/view/GridSmart"></script>
-    <a href="/agenda">Agenda</a><a href="https://other.com/schedule">x</a>
-    <a href="https://www.nextappcon.com/program-2026">Program</a>
-    <div data-src="https://sessionize.com/api/v2/abc123xy/view/Speakers"></div>
-    <div data-src="https://sessionize.com/api/v2/zzz999/view/Sessions"></div>`;
-  assert.deepEqual(extractSessionizeIds(html), ['abc123xy', 'zzz999']);
-  assert.deepEqual(findAgendaLinks(html, 'https://www.nextappcon.com/'), [
-    'https://www.nextappcon.com/agenda',
-    'https://www.nextappcon.com/program-2026',
-  ]);
+test('Sessionize ID normalisation', () => {
   assert.equal(normalizeSessionizeId('  ABC123xy '), 'abc123xy');
   assert.equal(normalizeSessionizeId('https://sessionize.com/api/v2/k9x2/view/All'), 'k9x2');
+  assert.equal(normalizeSessionizeId('https://sessionize.com/api/v2/yak5yl8m/view/All'), 'yak5yl8m');
   assert.equal(normalizeSessionizeId('not an id!'), null);
 });

@@ -6,7 +6,10 @@ const KNOWN: [RegExp, string][] = [
   [/agentic|ai\b/i, '#A855F7'],
   [/\bxr\b|xr ?devs/i, '#F59E0B'],
   [/game/i, '#EF4444'],
-  [/leader/i, '#64748B'],
+  [/techlead|leader/i, '#64748B'],
+  [/mascon/i, '#0D9488'],
+  [/community|meetup/i, '#EC4899'],
+  [/cross/i, '#6366F1'],
 ];
 const FALLBACK = ['#0EA5E9', '#14B8A6', '#E11D48', '#84CC16', '#D946EF', '#F97316'];
 
