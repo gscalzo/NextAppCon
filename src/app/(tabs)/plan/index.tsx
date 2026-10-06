@@ -6,6 +6,7 @@ import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from '
 import { DataStatus } from '../../../components/DataStatus.tsx';
 import { DayHeader } from '../../../components/DayHeader.tsx';
 import { EmptyAgenda } from '../../../components/EmptyAgenda.tsx';
+import { animateNextLayout } from '../../../components/motion.tsx';
 import { NowLine } from '../../../components/NowLine.tsx';
 import { NowNextCard } from '../../../components/NowNext.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
@@ -71,7 +72,10 @@ export default function PlanScreen() {
         options={{
           headerRight: () => (
             <Pressable
-              onPress={() => setShowAlternatives((v) => !v)}
+              onPress={() => {
+                animateNextLayout();
+                setShowAlternatives((v) => !v);
+              }}
               hitSlop={10}
               accessibilityLabel={showAlternatives ? 'Hide alternatives' : 'Show alternatives'}
             >
@@ -109,10 +113,10 @@ export default function PlanScreen() {
           </>
         }
         renderSectionHeader={({ section }) => <DayHeader day={section.day} now={now} />}
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           if (item.kind === 'now') return <NowLine now={now} />;
-          if (item.kind === 'alt') return <SessionRow session={item.session} now={now} compact />;
-          return <SessionRow session={item.session} now={now} clash={clashes.has(item.session.id)} />;
+          if (item.kind === 'alt') return <SessionRow session={item.session} now={now} compact index={index} />;
+          return <SessionRow session={item.session} now={now} clash={clashes.has(item.session.id)} index={index} />;
         }}
         ListEmptyComponent={
           <View style={styles.emptyBox}>

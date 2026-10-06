@@ -5,6 +5,7 @@ import { Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, V
 
 import { DataStatus } from '../../../components/DataStatus.tsx';
 import { EmptyAgenda } from '../../../components/EmptyAgenda.tsx';
+import { animateNextLayout } from '../../../components/motion.tsx';
 import { NowLine } from '../../../components/NowLine.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
 import { colors, font, gutter, radius } from '../../../components/theme.ts';
@@ -77,16 +78,31 @@ export default function AllTalksScreen() {
             <SegmentedControl
               values={dayKeys.map(formatDayLabel)}
               selectedIndex={Math.max(0, dayKeys.indexOf(day))}
-              onChange={(e) => setPickedDay(dayKeys[e.nativeEvent.selectedSegmentIndex])}
+              onChange={(e) => {
+                animateNextLayout();
+                setPickedDay(dayKeys[e.nativeEvent.selectedSegmentIndex]);
+              }}
               style={styles.segmented}
             />
             {tracks.length > 0 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-                <Pressable onPress={() => setTrack(null)} style={[styles.allChip, !track && styles.allChipActive]}>
+                <Pressable
+                  onPress={() => {
+                    animateNextLayout();
+                    setTrack(null);
+                  }}
+                  style={[styles.allChip, !track && styles.allChipActive]}
+                >
                   <Text style={[styles.allText, !track && styles.allTextActive]}>All tracks</Text>
                 </Pressable>
                 {tracks.map((t) => (
-                  <Pressable key={t} onPress={() => setTrack(track === t ? null : t)}>
+                  <Pressable
+                    key={t}
+                    onPress={() => {
+                      animateNextLayout();
+                      setTrack(track === t ? null : t);
+                    }}
+                  >
                     <TrackChip track={t} active={track === t} />
                   </Pressable>
                 ))}
@@ -95,7 +111,7 @@ export default function AllTalksScreen() {
           </View>
         }
         renderSectionHeader={({ section }) => (section.now ? <NowLine now={now} /> : <View style={styles.slot} />)}
-        renderItem={({ item }) => <SessionRow session={item} now={now} />}
+        renderItem={({ item, index }) => <SessionRow session={item} now={now} index={index} />}
         ListEmptyComponent={<Text style={styles.empty}>No talks match.</Text>}
         contentContainerStyle={{ paddingBottom: 40 }}
       />

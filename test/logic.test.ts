@@ -22,7 +22,10 @@ const fixture = {
     },
     { id: '104', title: 'Unscheduled', startsAt: null, endsAt: null, speakers: [], categoryItems: [] },
   ],
-  speakers: [{ id: 's1', fullName: 'Ada Droid' }, { id: 's2', firstName: 'Tim', lastName: 'Swift' }],
+  speakers: [
+    { id: 's1', fullName: 'Ada Droid', profilePicture: 'https://cdn.sessionize.com/image/ada.png' },
+    { id: 's2', firstName: 'Tim', lastName: 'Swift' },
+  ],
   categories: [
     { id: 1, title: 'Session format', items: [{ id: 2, name: 'Talk' }] },
     { id: 10, title: 'Conference', items: [{ id: 11, name: 'droidCon' }, { id: 12, name: 'swiftCon' }] },
@@ -59,6 +62,8 @@ test('parses Sessionize All view with track, room and speakers', () => {
   assert.deepEqual(compose.speakers, ['Ada Droid']);
   assert.equal(swift.track, 'swiftCon');
   assert.deepEqual(swift.speakers, ['Tim Swift']);
+  assert.deepEqual(compose.speakerPhotos, ['https://cdn.sessionize.com/image/ada.png']);
+  assert.deepEqual(swift.speakerPhotos, [null]);
   assert.equal(swift.description, '');
   assert.equal(lunch.isService, true);
   assert.equal(lunch.room, '');
