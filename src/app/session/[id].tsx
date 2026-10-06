@@ -1,7 +1,7 @@
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '../../components/Badge.tsx';
 import { colors } from '../../components/theme.ts';
@@ -13,7 +13,7 @@ import { useAgenda } from '../../state/AgendaContext.tsx';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { sessionsById, favIds, favs, toggleFav, switchTo, planEntry } = useAgenda();
+  const { sessionsById, speakersById, favIds, favs, toggleFav, switchTo, planEntry } = useAgenda();
   const session = sessionsById.get(id);
   if (!session) {
     return <Text style={styles.missing}>This talk is no longer in the agenda.</Text>;
@@ -28,6 +28,10 @@ export default function SessionScreen() {
       })
     : [];
   const glass = isLiquidGlassAvailable();
+  const speakers = session.speakers.map((name, i) => {
+    const id = session.speakerIds[i];
+    return { name, id, profile: id ? speakersById.get(id) : undefined };
+  });
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -38,7 +42,22 @@ export default function SessionScreen() {
         {entry?.role === 'alternative' && <Badge label="ALTERNATIVE" color={colors.muted} />}
       </View>
       <Text style={styles.title}>{session.title}</Text>
-      {session.speakers.length > 0 && <Text style={styles.speakers}>{session.speakers.join(', ')}</Text>}
+      {speakers.length > 0 && (
+        <Text style={styles.speakers}>
+          {speakers.map((sp, i) => (
+            <Text key={sp.id ?? sp.name}>
+              {i > 0 && ', '}
+              {sp.profile ? (
+                <Text style={styles.speakerLink} onPress={() => router.push(`/speaker/${sp.id}`)}>
+                  {sp.name}
+                </Text>
+              ) : (
+                sp.name
+              )}
+            </Text>
+          ))}
+        </Text>
+      )}
 
       <View style={styles.whereRow}>
         <SymbolView name="calendar" size={18} tintColor={colors.muted} />
@@ -88,6 +107,48 @@ export default function SessionScreen() {
         </GlassView>
       )}
 
+      {!!session.description && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Abstract</Text>
+          <Text style={styles.description}>{session.description}</Text>
+        </View>
+      )}
+
+      {speakers.some((sp) => sp.profile) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{speakers.length > 1 ? 'Speakers' : 'Speaker'}</Text>
+          {speakers.map(({ id, profile }) =>
+            profile ? (
+              <Pressable
+                key={id}
+                onPress={() => router.push(`/speaker/${id}`)}
+                accessibilityRole="button"
+                accessibilityLabel={`${profile.name} bio`}
+                style={({ pressed }) => [styles.option, pressed && { opacity: 0.7 }]}
+              >
+                {profile.photoUrl ? (
+                  <Image source={{ uri: profile.photoUrl }} style={styles.avatar} accessibilityIgnoresInvertColors />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarFallback]}>
+                    <SymbolView name="person.fill" size={20} tintColor={colors.muted} />
+                  </View>
+                )}
+                <View style={styles.optionBody}>
+                  <Text style={styles.optionTitle}>{profile.name}</Text>
+                  {!!profile.tagLine && (
+                    <Text style={styles.optionMeta} numberOfLines={2}>
+                      {profile.tagLine}
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.bioLink}>Bio</Text>
+                <SymbolView name="chevron.right" size={14} tintColor={colors.muted} />
+              </Pressable>
+            ) : null,
+          )}
+        </View>
+      )}
+
       {options.length > 0 && (
         <View style={styles.options}>
           <Text style={styles.sectionTitle}>Other options in this slot</Text>
@@ -114,8 +175,6 @@ export default function SessionScreen() {
           })}
         </View>
       )}
-
-      {!!session.description && <Text style={styles.description}>{session.description}</Text>}
     </ScrollView>
   );
 }
@@ -126,6 +185,7 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   title: { fontSize: 24, fontWeight: '700', color: colors.text },
   speakers: { fontSize: 16, fontWeight: '600', color: colors.muted },
+  speakerLink: { color: colors.accent },
   whereRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   when: { fontSize: 16, color: colors.text },
   room: { fontWeight: '700', color: colors.accent },
@@ -150,6 +210,10 @@ const styles = StyleSheet.create({
   whyText: { fontSize: 15, lineHeight: 21, color: colors.text },
   note: { fontSize: 14, lineHeight: 20, color: colors.danger },
   options: { gap: 8 },
+  section: { gap: 8 },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.fill },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  bioLink: { color: colors.accent, fontWeight: '600', fontSize: 14 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: colors.muted, textTransform: 'uppercase', marginTop: 4 },
   option: {
     flexDirection: 'row',

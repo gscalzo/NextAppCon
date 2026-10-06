@@ -1,5 +1,5 @@
 import { parseEventTime } from './time.ts';
-import type { Session } from './types.ts';
+import type { Session, Speaker } from './types.ts';
 
 // Shape of https://sessionize.com/api/v2/{id}/view/All (fields we use).
 type SzItem = { id: number | string; name: string };
@@ -17,9 +17,19 @@ type SzSession = {
   roomId?: number | string | null;
   room?: string | null;
 };
+type SzSpeaker = {
+  id: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string | null;
+  tagLine?: string | null;
+  profilePicture?: string | null;
+  links?: { title?: string; url?: string }[];
+};
 type SzAll = {
   sessions?: SzSession[];
-  speakers?: { id: string; fullName?: string; firstName?: string; lastName?: string }[];
+  speakers?: SzSpeaker[];
   categories?: SzCategory[];
   rooms?: { id: number | string; name: string }[];
 };
@@ -47,17 +57,30 @@ export function pickTrackCategory(categories: SzCategory[]): SzCategory | null {
   return best ?? categories.find((c) => /conference|event/i.test(c.title)) ?? null;
 }
 
-export function parseSessionizeAll(json: unknown): Session[] {
+const speakerName = (s: SzSpeaker) => s.fullName ?? [s.firstName, s.lastName].filter(Boolean).join(' ');
+
+function asAll(json: unknown): SzAll & { sessions: SzSession[] } {
   const data = json as SzAll;
   if (!data || !Array.isArray(data.sessions)) {
     throw new Error('Not a Sessionize "All" response (no sessions array)');
   }
-  const speakers = new Map(
-    (data.speakers ?? []).map((s) => [
-      s.id,
-      s.fullName ?? [s.firstName, s.lastName].filter(Boolean).join(' '),
-    ]),
-  );
+  return data as SzAll & { sessions: SzSession[] };
+}
+
+export function parseSessionizeSpeakers(json: unknown): Speaker[] {
+  return (asAll(json).speakers ?? []).map((s) => ({
+    id: s.id,
+    name: speakerName(s),
+    tagLine: s.tagLine?.trim() ?? '',
+    bio: s.bio?.trim() ?? '',
+    photoUrl: s.profilePicture || null,
+    links: (s.links ?? []).flatMap((l) => (l.url ? [{ title: l.title || l.url, url: l.url }] : [])),
+  }));
+}
+
+export function parseSessionizeAll(json: unknown): Session[] {
+  const data = asAll(json);
+  const speakers = new Map((data.speakers ?? []).map((s) => [s.id, speakerName(s)]));
   const rooms = new Map((data.rooms ?? []).map((r) => [String(r.id), r.name]));
   const trackCategory = pickTrackCategory(data.categories ?? []);
   const trackItems = new Map((trackCategory?.items ?? []).map((i) => [String(i.id), i.name]));
@@ -75,6 +98,12 @@ export function parseSessionizeAll(json: unknown): Session[] {
       if (track) break;
     }
 
+    const sessionSpeakers = (s.speakers ?? []).flatMap((sp) => {
+      const id = typeof sp === 'string' ? sp : sp.id;
+      const name = typeof sp === 'string' ? speakers.get(sp) : sp.name ?? speakers.get(sp.id);
+      return name ? [{ id, name }] : [];
+    });
+
     sessions.push({
       id: String(s.id),
       title: s.title.trim(),
@@ -83,9 +112,8 @@ export function parseSessionizeAll(json: unknown): Session[] {
       endsAt,
       room: s.room ?? (s.roomId != null ? rooms.get(String(s.roomId)) : undefined) ?? '',
       track,
-      speakers: (s.speakers ?? [])
-        .map((sp) => (typeof sp === 'string' ? speakers.get(sp) : sp.name ?? speakers.get(sp.id)))
-        .filter((n): n is string => !!n),
+      speakers: sessionSpeakers.map((sp) => sp.name),
+      speakerIds: sessionSpeakers.map((sp) => sp.id),
       isService: !!s.isServiceSession,
     });
   }
