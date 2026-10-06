@@ -6,6 +6,7 @@ const KEYS = {
   agenda: 'agenda:v1',
   favs: 'favs:v1',
   manualIds: 'sessionizeIds:v1',
+  planImported: 'planImported:v1',
 };
 
 async function read<T>(key: string): Promise<T | null> {
@@ -26,4 +27,6 @@ export const storage = {
   saveFavs: (ids: string[]) => write(KEYS.favs, ids),
   loadManualIds: async () => (await read<string[]>(KEYS.manualIds)) ?? [],
   saveManualIds: (ids: string[]) => write(KEYS.manualIds, ids),
+  loadPlanImported: async () => (await read<boolean>(KEYS.planImported)) ?? false,
+  savePlanImported: () => write(KEYS.planImported, true),
 };

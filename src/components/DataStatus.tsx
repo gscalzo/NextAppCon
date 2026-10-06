@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useAgenda } from '../state/AgendaContext.tsx';
 import { colors } from './theme.ts';
 
-function ago(ms: number): string {
+export function ago(ms: number): string {
   const mins = Math.round((Date.now() - ms) / 60_000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins} min ago`;
@@ -11,7 +11,7 @@ function ago(ms: number): string {
   return `${Math.round(mins / 1440)} d ago`;
 }
 
-/** One-line data freshness indicator: loading, offline with cache, or error. */
+/** One-line data freshness indicator: loading, or offline with a saved copy. */
 export function DataStatus() {
   const { status, fetchedAt } = useAgenda();
   if (status.kind === 'loading') {
@@ -33,8 +33,6 @@ export function DataStatus() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 6 },
   text: { fontSize: 12, color: colors.muted },
 });
-
-export { ago };

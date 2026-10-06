@@ -1,28 +1,31 @@
-import { Tabs } from 'expo-router';
-import { Text, type ColorValue } from 'react-native';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
+import { NowNextContent } from '../../components/NowNext.tsx';
 import { colors } from '../../components/theme.ts';
-import { useAgenda } from '../../state/AgendaContext.tsx';
 
-const icon = (glyph: string) =>
-  function TabIcon({ color }: { color: ColorValue }) {
-    return <Text style={{ fontSize: 20, color }}>{glyph}</Text>;
-  };
+function NowAccessory() {
+  const placement = NativeTabs.BottomAccessory.usePlacement();
+  return <NowNextContent compact={placement === 'inline'} />;
+}
 
 export default function TabsLayout() {
-  const { favs } = useAgenda();
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: colors.accent }}>
-      <Tabs.Screen name="index" options={{ title: 'Agenda', tabBarIcon: icon('☰') }} />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: 'My schedule',
-          tabBarIcon: icon('★'),
-          tabBarBadge: favs.length > 0 ? favs.length : undefined,
-        }}
-      />
-      <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: icon('⚙︎') }} />
-    </Tabs>
+    <NativeTabs tintColor={colors.accent} minimizeBehavior="onScrollDown">
+      <NativeTabs.BottomAccessory>
+        <NowAccessory />
+      </NativeTabs.BottomAccessory>
+      <NativeTabs.Trigger name="plan">
+        <NativeTabs.Trigger.Label>My plan</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'star', selected: 'star.fill' }} md="star" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="all">
+        <NativeTabs.Trigger.Label>All talks</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="list.bullet.rectangle" md="list" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} md="settings" />
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

@@ -56,3 +56,15 @@ export function groupByStart(sessions: Session[]): { startsAt: number; data: Ses
   }
   return slots;
 }
+
+/**
+ * Where the current-time line goes in a day's list (sorted by start): before the
+ * first item that starts after `now`, or at the end while the last one runs.
+ * -1 when `now` falls outside the day.
+ */
+export function nowLineIndex(items: { startsAt: number; endsAt: number }[], now: number): number {
+  if (items.length === 0 || now < items[0].startsAt) return -1;
+  if (now >= Math.max(...items.map((s) => s.endsAt))) return -1;
+  const i = items.findIndex((s) => s.startsAt > now);
+  return i === -1 ? items.length : i;
+}
