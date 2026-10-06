@@ -4,6 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '../../components/Badge.tsx';
+import { MyTalkNotes } from '../../components/MyTalkNotes.tsx';
 import { colors } from '../../components/theme.ts';
 import { TrackChip } from '../../components/TrackChip.tsx';
 import { otherOptions } from '../../lib/plan.ts';
@@ -30,7 +31,12 @@ export default function SessionScreen() {
   const glass = isLiquidGlassAvailable();
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode="interactive"
+    >
       <View style={styles.badges}>
         <TrackChip track={session.track} />
         {entry?.slot.kind === 'keynote' && entry.role === 'pick' && <Badge label="YOUR KEYNOTE" color={colors.accent} />}
@@ -73,6 +79,13 @@ export default function SessionScreen() {
               {formatTime(c.startsAt)}–{formatTime(c.endsAt)} {c.title}
             </Text>
           ))}
+        </View>
+      )}
+
+      {!session.isService && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>My notes</Text>
+          <MyTalkNotes key={session.id} sessionId={session.id} />
         </View>
       )}
 
@@ -150,6 +163,7 @@ const styles = StyleSheet.create({
   whyText: { fontSize: 15, lineHeight: 21, color: colors.text },
   note: { fontSize: 14, lineHeight: 20, color: colors.danger },
   options: { gap: 8 },
+  section: { gap: 8 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: colors.muted, textTransform: 'uppercase', marginTop: 4 },
   option: {
     flexDirection: 'row',

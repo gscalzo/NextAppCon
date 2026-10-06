@@ -13,8 +13,10 @@ import { TrackChip } from './TrackChip.tsx';
 type Props = { session: Session; now: number; clash?: boolean; compact?: boolean };
 
 export function SessionRow({ session, now, clash = false, compact = false }: Props) {
-  const { favIds, toggleFav, switchTo, planEntry } = useAgenda();
+  const { favIds, toggleFav, switchTo, planEntry, attendedIds, notes } = useAgenda();
   const fav = favIds.has(session.id);
+  const attended = attendedIds.has(session.id);
+  const hasNote = !!notes[session.id];
   const entry = planEntry(session.id);
   const live = session.startsAt <= now && now < session.endsAt;
   const past = session.endsAt <= now;
@@ -39,6 +41,24 @@ export function SessionRow({ session, now, clash = false, compact = false }: Pro
                 {session.room ? `  ·  ${session.room}` : ''}
               </Text>
               {live && <Badge label="LIVE" color={colors.now} />}
+              {attended && (
+                <SymbolView
+                  name="checkmark.circle.fill"
+                  size={14}
+                  tintColor={colors.accent}
+                  accessibilityLabel="Attended"
+                  fallback={<Text style={[styles.marker, { color: '#4F46E5' }]}>✓</Text>}
+                />
+              )}
+              {hasNote && (
+                <SymbolView
+                  name="note.text"
+                  size={14}
+                  tintColor={colors.muted}
+                  accessibilityLabel="Has notes"
+                  fallback={<Text style={[styles.marker, { color: '#64748B' }]}>✎</Text>}
+                />
+              )}
             </View>
             <Text
               style={[styles.title, compact && styles.compactTitle, session.isService && styles.service]}
@@ -120,4 +140,5 @@ const styles = StyleSheet.create({
   speakers: { fontSize: 13, color: colors.muted },
   meta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   star: { paddingLeft: 10, justifyContent: 'center' },
+  marker: { fontSize: 12, fontWeight: '700' },
 });

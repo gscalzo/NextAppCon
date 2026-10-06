@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Alert } from 'react-native';
 
 import { PLAN } from '../data/plan.ts';
+import { toggled, withNote, type TalkNotes } from '../lib/personal.ts';
 import { indexPlan, seedFavourites, type PlanEntry } from '../lib/plan.ts';
 import { findClashes } from '../lib/schedule.ts';
 import { formatTime } from '../lib/time.ts';
@@ -37,6 +38,11 @@ type AgendaState = {
   switchTo: (session: Session) => void;
   /** Replaces all favourites with the plan's original picks. */
   resetToPlan: () => void;
+  notes: TalkNotes;
+  /** Stores a personal note for a talk; blank text deletes it. */
+  setNote: (sessionId: string, text: string) => void;
+  attendedIds: Set<string>;
+  toggleAttended: (sessionId: string) => void;
 };
 
 const AgendaContext = createContext<AgendaState | null>(null);
@@ -48,6 +54,8 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
   const [cache, setCache] = useState<AgendaCache | null>(null);
   const [manualIds, setManualIdsState] = useState<string[]>([]);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState<TalkNotes>({});
+  const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [remindersScheduled, setRemindersScheduled] = useState<number | null>(null);
   const [notificationsAllowed, setNotificationsAllowed] = useState<boolean | null>(null);
@@ -74,11 +82,13 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const [agenda, storedFavs, ids, planImported] = await Promise.all([
+      const [agenda, storedFavs, ids, planImported, storedNotes, attended] = await Promise.all([
         storage.loadAgenda(),
         storage.loadFavs(),
         storage.loadManualIds(),
         storage.loadPlanImported(),
+        storage.loadNotes(),
+        storage.loadAttended(),
       ]);
       // The plan is imported once; later un-favs stick.
       const favs = planImported ? new Set(storedFavs) : seedFavourites(storedFavs, PLAN);
@@ -89,6 +99,8 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
       setCache(agenda);
       setFavIds(favs);
       setManualIdsState(ids);
+      setNotes(storedNotes);
+      setAttendedIds(new Set(attended));
       setReady(true);
       setNotificationsAllowed(await ensureNotificationPermission().catch(() => false));
       if (!agenda || Date.now() - agenda.fetchedAt > STALE_AFTER_MS) await refreshWith(ids, agenda);
@@ -164,6 +176,24 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [saveFavs]);
 
+  useEffect(() => {
+    if (ready) storage.saveNotes(notes);
+  }, [ready, notes]);
+
+  const setNote = useCallback((sessionId: string, text: string) => {
+    setNotes((current) => withNote(current, sessionId, text));
+  }, []);
+
+  const toggleAttended = useCallback(
+    (sessionId: string) => {
+      const next = toggled(attendedIds, sessionId);
+      setAttendedIds(next);
+      storage.saveAttended([...next]);
+      Haptics.selectionAsync();
+    },
+    [attendedIds],
+  );
+
   const setManualIds = useCallback(
     async (ids: string[]) => {
       setManualIdsState(ids);
@@ -191,6 +221,10 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     toggleFav,
     switchTo,
     resetToPlan,
+    notes,
+    setNote,
+    attendedIds,
+    toggleAttended,
   };
 
   return <AgendaContext.Provider value={value}>{children}</AgendaContext.Provider>;
