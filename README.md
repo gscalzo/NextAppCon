@@ -12,7 +12,7 @@ All times are shown in Berlin time, whatever time zone the phone is in.
 
 ## Where the data comes from
 
-On first launch the app scans `nextappcon.com` (`/agenda`, `/schedule`, `/program`, the home page, and the sub-conference pages) for an embedded `sessionize.com/api/v2/<id>/` URL. It then downloads `https://sessionize.com/api/v2/<id>/view/All`. If auto-detection fails, open **Settings → Sessionize ID** and paste the ID or any `sessionize.com/api/v2/…` URL from the agenda page's source.
+The agenda comes from the conference's Sessionize event: `https://sessionize.com/api/v2/yak5yl8m/view/All`. To point the app at another event, open **Settings → Sessionize ID** and paste its ID or any `sessionize.com/api/v2/…` URL.
 
 ## Run it on your iPhone (Expo Go)
 
@@ -44,7 +44,7 @@ npm run lint
 Code layout:
 
 - `src/lib/`: pure logic, no React Native imports (tested with `node --test`)
-- `src/state/`: storage, Sessionize fetching and discovery, notifications, the `AgendaProvider` context
+- `src/state/`: storage, Sessionize fetching, notifications, the `AgendaProvider` context
 - `src/app/`: Expo Router screens (Agenda, My schedule, Settings, talk detail)
 
 There is no committed lockfile yet; `npm install` creates one. App icons are not set, so Expo Go shows its default.

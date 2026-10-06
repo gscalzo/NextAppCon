@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 import { findClashes } from '../lib/schedule.ts';
 import { formatTime } from '../lib/time.ts';
 import type { AgendaCache, Session } from '../lib/types.ts';
-import { discoverSessionizeIds, fetchSessions } from './agendaSource.ts';
+import { DEFAULT_SESSIONIZE_ID, fetchSessions } from './agendaSource.ts';
 import { ensureNotificationPermission, rescheduleReminders } from './notifications.ts';
 import { storage } from './storage.ts';
 
@@ -47,13 +47,8 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     refreshing.current = true;
     setStatus({ kind: 'loading' });
     try {
-      let sourceIds = ids.length ? ids : current?.sessionizeId.split(',').filter(Boolean) ?? [];
-      if (sourceIds.length === 0) sourceIds = await discoverSessionizeIds();
-      if (sourceIds.length === 0) {
-        throw new Error(
-          'Could not find the Sessionize agenda on nextappcon.com. Enter the Sessionize ID in Settings.',
-        );
-      }
+      const cachedIds = current?.sessionizeId.split(',').filter(Boolean) ?? [];
+      const sourceIds = ids.length ? ids : cachedIds.length ? cachedIds : [DEFAULT_SESSIONIZE_ID];
       const sessions = await fetchSessions(sourceIds);
       const next: AgendaCache = { sessionizeId: sourceIds.join(','), fetchedAt: Date.now(), sessions };
       setCache(next);

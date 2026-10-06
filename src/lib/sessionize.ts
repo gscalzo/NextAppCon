@@ -99,29 +99,4 @@ export function normalizeSessionizeId(input: string): string | null {
   return /^[a-z0-9]{4,16}$/i.test(trimmed) ? trimmed.toLowerCase() : null;
 }
 
-/** Returns the Sessionize API IDs embedded in a page, most frequent first. */
-export function extractSessionizeIds(html: string): string[] {
-  const counts = new Map<string, number>();
-  for (const m of html.matchAll(ID_IN_URL)) {
-    const id = m[1].toLowerCase();
-    counts.set(id, (counts.get(id) ?? 0) + 1);
-  }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
-}
-
-/** Same-site links on a page that look like agenda pages. */
-export function findAgendaLinks(html: string, baseUrl: string): string[] {
-  const links = new Set<string>();
-  for (const m of html.matchAll(/href=["']([^"'#]+)["']/gi)) {
-    if (!/agenda|schedule|program|sessions|timetable/i.test(m[1])) continue;
-    try {
-      const url = new URL(m[1], baseUrl);
-      if (url.hostname.endsWith('nextappcon.com')) links.add(url.toString());
-    } catch {
-      // ignore malformed hrefs
-    }
-  }
-  return [...links];
-}
-
 export const sessionizeAllUrl = (id: string) => `https://sessionize.com/api/v2/${id}/view/All`;

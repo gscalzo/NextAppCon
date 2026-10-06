@@ -5,6 +5,7 @@ import { ago } from '../../components/DataStatus.tsx';
 import { colors } from '../../components/theme.ts';
 import { normalizeSessionizeId } from '../../lib/sessionize.ts';
 import { useAgenda } from '../../state/AgendaContext.tsx';
+import { DEFAULT_SESSIONIZE_ID } from '../../state/agendaSource.ts';
 import { LEAD_MINUTES, sendTestNotification } from '../../state/notifications.ts';
 
 function Button({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
@@ -48,8 +49,8 @@ export default function SettingsScreen() {
       <Text style={styles.h}>Sessionize ID (optional)</Text>
       <View style={styles.card}>
         <Text style={styles.hint}>
-          Leave empty to auto-detect it from nextappcon.com. If that fails, paste the ID or a
-          sessionize.com/api/v2/… URL from the agenda page source.
+          Leave empty to use the next.app devCon 2026 agenda ({DEFAULT_SESSIONIZE_ID}). To use another event, paste
+          its Sessionize ID or a sessionize.com/api/v2/… URL.
         </Text>
         <TextInput
           value={input}
@@ -59,7 +60,7 @@ export default function SettingsScreen() {
           placeholder="e.g. abc123xy"
           style={styles.input}
         />
-        <Button label={input.trim() ? 'Save and download' : 'Auto-detect and download'} onPress={saveIds} />
+        <Button label={input.trim() ? 'Save and download' : 'Use default and download'} onPress={saveIds} />
       </View>
 
       <Text style={styles.h}>Reminders</Text>
