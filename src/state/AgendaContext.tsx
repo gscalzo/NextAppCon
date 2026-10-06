@@ -1,6 +1,9 @@
+import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Alert } from 'react-native';
 
+import { PLAN } from '../data/plan.ts';
+import { indexPlan, seedFavourites, type PlanEntry } from '../lib/plan.ts';
 import { findClashes } from '../lib/schedule.ts';
 import { formatTime } from '../lib/time.ts';
 import type { AgendaCache, Session } from '../lib/types.ts';
@@ -10,6 +13,7 @@ import { storage } from './storage.ts';
 
 const STALE_AFTER_MS = 30 * 60_000;
 const NO_SESSIONS: Session[] = [];
+const PLAN_INDEX = indexPlan(PLAN);
 
 type Status = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string };
 
@@ -25,12 +29,19 @@ type AgendaState = {
   favs: Session[];
   remindersScheduled: number | null;
   notificationsAllowed: boolean | null;
+  planEntry: (sessionId: string) => PlanEntry | undefined;
   refresh: () => Promise<void>;
   setManualIds: (ids: string[]) => Promise<void>;
   toggleFav: (session: Session) => void;
+  /** Favs `session` and drops every favourite that overlaps it. */
+  switchTo: (session: Session) => void;
+  /** Replaces all favourites with the plan's original picks. */
+  resetToPlan: () => void;
 };
 
 const AgendaContext = createContext<AgendaState | null>(null);
+
+const planEntry = (sessionId: string) => PLAN_INDEX.get(sessionId);
 
 export function AgendaProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -63,13 +74,20 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const [agenda, favs, ids] = await Promise.all([
+      const [agenda, storedFavs, ids, planImported] = await Promise.all([
         storage.loadAgenda(),
         storage.loadFavs(),
         storage.loadManualIds(),
+        storage.loadPlanImported(),
       ]);
+      // The plan is imported once; later un-favs stick.
+      const favs = planImported ? new Set(storedFavs) : seedFavourites(storedFavs, PLAN);
+      if (!planImported) {
+        await storage.saveFavs([...favs]);
+        await storage.savePlanImported();
+      }
       setCache(agenda);
-      setFavIds(new Set(favs));
+      setFavIds(favs);
       setManualIdsState(ids);
       setReady(true);
       setNotificationsAllowed(await ensureNotificationPermission().catch(() => false));
@@ -87,7 +105,7 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
   // Keep reminders in sync with favs and with agenda changes (moved talks).
   useEffect(() => {
     if (!ready || !notificationsAllowed) return;
-    rescheduleReminders(favs).then(setRemindersScheduled).catch(() => setRemindersScheduled(null));
+    rescheduleReminders(favs, planEntry).then(setRemindersScheduled).catch(() => setRemindersScheduled(null));
   }, [ready, notificationsAllowed, favs]);
 
   const saveFavs = useCallback((next: Set<string>) => {
@@ -101,6 +119,7 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
         const next = new Set(favIds);
         next.delete(session.id);
         saveFavs(next);
+        Haptics.selectionAsync();
         return;
       }
       const add = (replace: Session[] = []) => {
@@ -108,9 +127,11 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
         for (const s of replace) next.delete(s.id);
         next.add(session.id);
         saveFavs(next);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       };
       const clashes = findClashes(session, favs);
       if (clashes.length === 0) return add();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       const list = clashes
         .map((c) => `• ${formatTime(c.startsAt)}–${formatTime(c.endsAt)} ${c.title}${c.room ? ` (${c.room})` : ''}`)
         .join('\n');
@@ -126,6 +147,22 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     },
     [favIds, favs, saveFavs],
   );
+
+  const switchTo = useCallback(
+    (session: Session) => {
+      const next = new Set(favIds);
+      for (const c of findClashes(session, favs)) next.delete(c.id);
+      next.add(session.id);
+      saveFavs(next);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [favIds, favs, saveFavs],
+  );
+
+  const resetToPlan = useCallback(() => {
+    saveFavs(new Set(PLAN.map((s) => s.id)));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [saveFavs]);
 
   const setManualIds = useCallback(
     async (ids: string[]) => {
@@ -148,9 +185,12 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     favs,
     remindersScheduled,
     notificationsAllowed,
+    planEntry,
     refresh: () => refreshWith(manualIds, cache),
     setManualIds,
     toggleFav,
+    switchTo,
+    resetToPlan,
   };
 
   return <AgendaContext.Provider value={value}>{children}</AgendaContext.Provider>;

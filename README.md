@@ -2,11 +2,13 @@
 
 A personal Expo / React Native app for the next.app devCon Berlin agenda (7–9 Oct 2026).
 
-- **Offline:** the agenda is downloaded from Sessionize and cached on the phone. It refreshes when it's older than 30 minutes and you're online, and you can pull to refresh. If a refresh fails, the cached copy stays and a line shows how old it is.
-- **Talk type:** each talk shows a colour chip for its sub-conference (droidCon, flutterCon, swiftCon, reactCon, agentic codingCon, xr devsCon, game devs). The agenda can be filtered by it.
-- **Favourites:** tap ★. *My schedule* lists your favourites by day, with a "NOW / NEXT" banner and countdown.
-- **Reminders:** a local notification fires 5 minutes before each favourite starts, showing the title, start time and room. Tapping it opens the talk. Reminders are rescheduled whenever favourites or the agenda change, so a moved talk still gets the right time.
-- **Clash warning:** if a talk you fav overlaps one you already have (any overlap; back-to-back is fine), an alert offers **Keep both / Replace / Cancel**. Clashing favourites are highlighted in red.
+- **My plan:** on first launch your 24-slot route (from the AI talk planner export in `src/data/plan.ts`) is imported as favourites, including your Friday keynote. Each slot lists its alternatives underneath with the reason it was suggested; tap **Switch** to swap. Un-favs stick, and **Settings → Restore my original plan** brings the route back.
+- **Where to go:** a local notification fires 5 minutes before each favourite: "Go to react nativeCon 2 · 10:20", with the title and speakers. Tapping it opens the talk.
+- **Current time:** the Berlin time and the talk running now or next, with its room, sit in a Liquid Glass bar above the tab bar (iOS 26) and in a card at the top of My plan. A red now-line runs through My plan and All talks, and running talks show LIVE.
+- **All talks:** every session, by day (segmented control), sub-conference and native search. Long-press a talk for a preview plus Favourite / Switch actions.
+- **Offline:** the agenda is downloaded from Sessionize and cached on the phone. It refreshes when it's older than 30 minutes and you're online, and you can pull to refresh.
+- **Clash warning:** faving a talk that overlaps a favourite offers **Keep both / Replace / Cancel**; clashing favourites are marked CLASH.
+- **Native UI:** native tabs and large-title headers, form sheets, SF Symbols, haptics, system colours with dark mode, and Liquid Glass on iOS 26 (`expo-glass-effect`; plain cards on older iOS).
 
 All times are shown in Berlin time, whatever time zone the phone is in.
 
@@ -36,7 +38,7 @@ Open the update in Expo Go: sign in to the same Expo account in Expo Go, or use 
 ## Development
 
 ```bash
-npm test            # pure-logic tests (Berlin time, Sessionize parsing, clashes, next-up)
+npm test            # pure-logic tests (Berlin time, Sessionize parsing, clashes, plan, reminders, now-line)
 npm run typecheck
 npm run lint
 ```
@@ -45,6 +47,7 @@ Code layout:
 
 - `src/lib/`: pure logic, no React Native imports (tested with `node --test`)
 - `src/state/`: storage, Sessionize fetching, notifications, the `AgendaProvider` context
-- `src/app/`: Expo Router screens (Agenda, My schedule, Settings, talk detail)
+- `src/app/`: Expo Router screens: native tabs (My plan, All talks, Settings), each with a native stack, and the talk sheet
+- `src/data/plan.ts`: the imported talk plan
 
 There is no committed lockfile yet; `npm install` creates one. App icons are not set, so Expo Go shows its default.

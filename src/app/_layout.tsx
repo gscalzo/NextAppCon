@@ -18,10 +18,18 @@ export default function RootLayout() {
   useOpenTalkFromNotification();
   return (
     <AgendaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="session/[id]" options={{ presentation: 'modal', title: 'Talk' }} />
+        <Stack.Screen
+          name="session/[id]"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.6, 1],
+            sheetGrabberVisible: true,
+            headerShown: false,
+          }}
+        />
       </Stack>
     </AgendaProvider>
   );
