@@ -27,11 +27,14 @@ type SzAll = {
 const SUB_CONFERENCE = /droid|flutter|swift|react|agentic|\bxr\b|xr ?devs|game|kotlin|ios|android|leadership/i;
 
 /**
- * Picks the Sessionize category that represents the sub-conference. Scores each
- * category by how many of its items look like a next.app sub-conference, falls
- * back to a category titled "Track".
+ * Picks the Sessionize category that represents the sub-conference. next.app has
+ * both "Choose the PRIMARY event…" and "Which other events is your talk relevant
+ * for?", so a title naming the primary event or track wins. Otherwise scores each
+ * category by how many of its items look like a next.app sub-conference.
  */
 export function pickTrackCategory(categories: SzCategory[]): SzCategory | null {
+  const named = categories.find((c) => /primary|track/i.test(c.title));
+  if (named) return named;
   let best: SzCategory | null = null;
   let bestScore = 0;
   for (const c of categories) {
@@ -41,7 +44,7 @@ export function pickTrackCategory(categories: SzCategory[]): SzCategory | null {
       bestScore = score;
     }
   }
-  return best ?? categories.find((c) => /track|conference/i.test(c.title)) ?? null;
+  return best ?? categories.find((c) => /conference|event/i.test(c.title)) ?? null;
 }
 
 export function parseSessionizeAll(json: unknown): Session[] {

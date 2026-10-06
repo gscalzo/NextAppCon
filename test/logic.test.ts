@@ -65,6 +65,25 @@ test('parses Sessionize All view with track, room and speakers', () => {
   assert.throws(() => parseSessionizeAll({ foo: 1 }));
 });
 
+test('track comes from the PRIMARY event category, not "other events"', () => {
+  const data = {
+    sessions: [
+      {
+        id: '1', title: 'Talk', startsAt: '2026-10-07T10:00:00', endsAt: '2026-10-07T10:40:00',
+        speakers: [], categoryItems: [21, 31, 32, 33], roomId: null,
+      },
+    ],
+    categories: [
+      { id: 2, title: 'Choose the PRIMARY event you are submitting for', items: [{ id: 21, name: 'swiftCon' }] },
+      {
+        id: 3, title: 'Which other events is your talk relevant for?',
+        items: [{ id: 31, name: 'droidCon' }, { id: 32, name: 'flutterCon' }, { id: 33, name: 'reactCon' }],
+      },
+    ],
+  };
+  assert.equal(parseSessionizeAll(data)[0].track, 'swiftCon');
+});
+
 test('clash detection: overlap counts, back-to-back does not', () => {
   const a = mk('a', '2026-10-07T10:00:00', '2026-10-07T10:40:00');
   const b = mk('b', '2026-10-07T10:35:00', '2026-10-07T11:00:00');
