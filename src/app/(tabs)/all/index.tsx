@@ -7,11 +7,11 @@ import { DataStatus } from '../../../components/DataStatus.tsx';
 import { EmptyAgenda } from '../../../components/EmptyAgenda.tsx';
 import { NowLine } from '../../../components/NowLine.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
-import { colors } from '../../../components/theme.ts';
+import { colors, font, gutter, radius } from '../../../components/theme.ts';
 import { TrackChip } from '../../../components/TrackChip.tsx';
 import { useNow } from '../../../components/useNow.ts';
 import { groupByDay, groupByStart, nowLineIndex } from '../../../lib/schedule.ts';
-import { dayKey, formatDayLabel, formatTime } from '../../../lib/time.ts';
+import { dayKey, formatDayLabel } from '../../../lib/time.ts';
 import type { Session } from '../../../lib/types.ts';
 import { useAgenda } from '../../../state/AgendaContext.tsx';
 
@@ -83,14 +83,10 @@ export default function AllTalksScreen() {
             {tracks.length > 0 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                 <Pressable onPress={() => setTrack(null)} style={[styles.allChip, !track && styles.allChipActive]}>
-                  <Text style={[styles.allText, !track && styles.allTextActive]}>All</Text>
+                  <Text style={[styles.allText, !track && styles.allTextActive]}>All tracks</Text>
                 </Pressable>
                 {tracks.map((t) => (
-                  <Pressable
-                    key={t}
-                    onPress={() => setTrack(track === t ? null : t)}
-                    style={{ opacity: !track || track === t ? 1 : 0.4 }}
-                  >
+                  <Pressable key={t} onPress={() => setTrack(track === t ? null : t)}>
                     <TrackChip track={t} active={track === t} />
                   </Pressable>
                 ))}
@@ -98,12 +94,10 @@ export default function AllTalksScreen() {
             )}
           </View>
         }
-        renderSectionHeader={({ section }) =>
-          section.now ? <NowLine now={now} /> : <Text style={styles.slot}>{formatTime(section.startsAt)}</Text>
-        }
+        renderSectionHeader={({ section }) => (section.now ? <NowLine now={now} /> : <View style={styles.slot} />)}
         renderItem={({ item }) => <SessionRow session={item} now={now} />}
         ListEmptyComponent={<Text style={styles.empty}>No talks match.</Text>}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       />
     </>
   );
@@ -111,20 +105,20 @@ export default function AllTalksScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  controls: { gap: 10, paddingTop: 4, paddingBottom: 4 },
-  segmented: { marginHorizontal: 16 },
-  chips: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
-  allChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: colors.text },
-  allChipActive: { backgroundColor: colors.text },
-  allText: { fontSize: 12, fontWeight: '600', color: colors.text },
-  allTextActive: { color: colors.bg },
+  controls: { gap: 12, paddingTop: 4, paddingBottom: 8 },
+  segmented: { marginHorizontal: gutter },
+  chips: { paddingHorizontal: gutter, gap: 8, alignItems: 'center' },
+  allChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: radius.pill, backgroundColor: colors.fill },
+  allChipActive: { backgroundColor: colors.ink },
+  allText: { ...font.caption, fontSize: 13, color: colors.text },
+  allTextActive: { color: colors.onInk },
+  // Tiles already show each start time, so slots are separated by a hairline, not a heading.
   slot: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
-    fontWeight: '700',
-    color: colors.muted,
-    fontVariant: ['tabular-nums'],
+    marginHorizontal: gutter,
+    marginTop: 6,
+    marginBottom: 2,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
   },
-  empty: { textAlign: 'center', color: colors.muted, marginTop: 32 },
+  empty: { ...font.body, textAlign: 'center', color: colors.muted, marginTop: 40 },
 });

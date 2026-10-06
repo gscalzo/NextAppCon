@@ -1,18 +1,18 @@
 import { Stack } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { DataStatus } from '../../../components/DataStatus.tsx';
+import { DayHeader } from '../../../components/DayHeader.tsx';
 import { EmptyAgenda } from '../../../components/EmptyAgenda.tsx';
 import { NowLine } from '../../../components/NowLine.tsx';
 import { NowNextCard } from '../../../components/NowNext.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
-import { colors } from '../../../components/theme.ts';
+import { colors, font, gutter, radius } from '../../../components/theme.ts';
 import { useNow } from '../../../components/useNow.ts';
 import { otherOptions } from '../../../lib/plan.ts';
 import { clashingIds, groupByDay, nowLineIndex } from '../../../lib/schedule.ts';
-import { formatDayLabel } from '../../../lib/time.ts';
 import type { Session } from '../../../lib/types.ts';
 import { useAgenda } from '../../../state/AgendaContext.tsx';
 import { LEAD_MINUTES } from '../../../state/notifications.ts';
@@ -21,6 +21,24 @@ type Item =
   | { kind: 'fav'; key: string; session: Session }
   | { kind: 'alt'; key: string; session: Session }
   | { kind: 'now'; key: string };
+
+function Notice({
+  icon,
+  tone,
+  children,
+}: {
+  icon: 'bell.slash' | 'exclamationmark.triangle';
+  tone: 'muted' | 'danger';
+  children: ReactNode;
+}) {
+  const color = tone === 'danger' ? colors.danger : colors.muted;
+  return (
+    <View style={[styles.notice, tone === 'danger' && styles.noticeDanger]}>
+      <SymbolView name={icon} size={16} tintColor={color} />
+      <Text style={[styles.noticeText, { color }]}>{children}</Text>
+    </View>
+  );
+}
 
 export default function PlanScreen() {
   const { sessions, favs, favIds, sessionsById, planEntry, notificationsAllowed, status, refresh } = useAgenda();
@@ -59,7 +77,7 @@ export default function PlanScreen() {
             >
               <SymbolView
                 name={showAlternatives ? 'rectangle.stack.fill' : 'rectangle.stack'}
-                tintColor={colors.accent}
+                tintColor={colors.text}
                 size={22}
               />
             </Pressable>
@@ -78,26 +96,34 @@ export default function PlanScreen() {
             <DataStatus />
             <NowNextCard />
             {notificationsAllowed === false && (
-              <Text style={styles.warning}>
+              <Notice icon="bell.slash" tone="muted">
                 Notifications are off, so you won’t get the {LEAD_MINUTES}-minute “go to” reminders. Enable them for
                 Expo Go in iOS Settings.
-              </Text>
+              </Notice>
             )}
-            {clashes.size > 0 && <Text style={styles.warning}>Some favourites overlap: they’re marked CLASH.</Text>}
+            {clashes.size > 0 && (
+              <Notice icon="exclamationmark.triangle" tone="danger">
+                Some favourites overlap. They’re marked Clash.
+              </Notice>
+            )}
           </>
         }
-        renderSectionHeader={({ section }) => <Text style={styles.day}>{formatDayLabel(section.day)}</Text>}
+        renderSectionHeader={({ section }) => <DayHeader day={section.day} now={now} />}
         renderItem={({ item }) => {
           if (item.kind === 'now') return <NowLine now={now} />;
           if (item.kind === 'alt') return <SessionRow session={item.session} now={now} compact />;
           return <SessionRow session={item.session} now={now} clash={clashes.has(item.session.id)} />;
         }}
         ListEmptyComponent={
-          <Text style={styles.empty}>
-            No favourites. Star talks in All talks, or restore your plan in Settings.
-          </Text>
+          <View style={styles.emptyBox}>
+            <View style={styles.emptyIcon}>
+              <SymbolView name="star" size={24} tintColor={colors.muted} />
+            </View>
+            <Text style={styles.emptyTitle}>Your plan is empty</Text>
+            <Text style={styles.empty}>Star talks in All talks, or restore your plan in Settings.</Text>
+          </View>
         }
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       />
     </>
   );
@@ -105,23 +131,29 @@ export default function PlanScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  day: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 6,
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginHorizontal: gutter - 4,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: radius.control,
+    borderCurve: 'continuous',
+    backgroundColor: colors.fill,
   },
-  warning: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: colors.dangerBg,
-    color: colors.danger,
-    fontSize: 13,
-    overflow: 'hidden',
+  noticeDanger: { backgroundColor: colors.dangerBg },
+  noticeText: { ...font.meta, flex: 1, lineHeight: 18 },
+  emptyBox: { alignItems: 'center', gap: 8, paddingHorizontal: 40, paddingTop: 48 },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.fill,
+    marginBottom: 4,
   },
-  empty: { textAlign: 'center', color: colors.muted, margin: 32, lineHeight: 20 },
+  emptyTitle: { ...font.title, color: colors.text },
+  empty: { ...font.body, textAlign: 'center', color: colors.muted },
 });
