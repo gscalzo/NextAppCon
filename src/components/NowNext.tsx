@@ -4,6 +4,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { dayKey, formatCountdown, formatDayLabel, formatTime } from '../lib/time.ts';
 import type { Session } from '../lib/types.ts';
+import { noOrphan } from '../lib/text.ts';
 import { Cover } from './Cover.tsx';
 import { FadeIn, usePressScale, usePulse } from './motion.tsx';
 import { colors, font, gutter, radius } from './theme.ts';
@@ -67,8 +68,8 @@ export function NowNextCard() {
           <View style={styles.heroMain}>
             <Cover session={session} size={76} />
             <View style={styles.flex}>
-              <Text style={styles.heroTitle} numberOfLines={3}>
-                {session.title}
+              <Text style={styles.heroTitle} numberOfLines={3} lineBreakStrategyIOS="standard" textBreakStrategy="balanced">
+                {noOrphan(session.title)}
               </Text>
               {session.speakers.length > 0 && (
                 <Text style={styles.heroSpeakers} numberOfLines={1}>
