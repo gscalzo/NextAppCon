@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { useAgenda } from '../state/AgendaContext.tsx';
-import { colors } from './theme.ts';
+import { colors, font, radius } from './theme.ts';
 
 const COMMIT_AFTER_MS = 500;
 
@@ -31,7 +31,7 @@ export function MyTalkNotes({ sessionId }: { sessionId: string }) {
         <Switch
           value={attendedIds.has(sessionId)}
           onValueChange={() => toggleAttended(sessionId)}
-          trackColor={{ true: colors.accent }}
+          trackColor={{ true: colors.success }}
           accessibilityLabel="Attended"
         />
       </View>
@@ -50,9 +50,9 @@ export function MyTalkNotes({ sessionId }: { sessionId: string }) {
 }
 
 const styles = StyleSheet.create({
-  box: { backgroundColor: colors.card, borderRadius: 14, borderCurve: 'continuous', paddingHorizontal: 14 },
+  box: { backgroundColor: colors.card, borderRadius: radius.card, borderCurve: 'continuous', paddingHorizontal: 16 },
   attendedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 },
-  attendedLabel: { fontSize: 16, color: colors.text },
+  attendedLabel: { ...font.body, fontWeight: '500', color: colors.text },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
-  input: { minHeight: 88, paddingVertical: 12, fontSize: 15, lineHeight: 21, color: colors.text, textAlignVertical: 'top' },
+  input: { ...font.body, minHeight: 88, paddingVertical: 12, color: colors.text, textAlignVertical: 'top' },
 });

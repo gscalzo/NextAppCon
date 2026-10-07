@@ -19,7 +19,7 @@ type SzSession = {
 };
 type SzAll = {
   sessions?: SzSession[];
-  speakers?: { id: string; fullName?: string; firstName?: string; lastName?: string }[];
+  speakers?: { id: string; fullName?: string; firstName?: string; lastName?: string; profilePicture?: string | null }[];
   categories?: SzCategory[];
   rooms?: { id: number | string; name: string }[];
 };
@@ -58,6 +58,7 @@ export function parseSessionizeAll(json: unknown): Session[] {
       s.fullName ?? [s.firstName, s.lastName].filter(Boolean).join(' '),
     ]),
   );
+  const photos = new Map((data.speakers ?? []).map((s) => [s.id, s.profilePicture || null]));
   const rooms = new Map((data.rooms ?? []).map((r) => [String(r.id), r.name]));
   const trackCategory = pickTrackCategory(data.categories ?? []);
   const trackItems = new Map((trackCategory?.items ?? []).map((i) => [String(i.id), i.name]));
@@ -86,6 +87,7 @@ export function parseSessionizeAll(json: unknown): Session[] {
       speakers: (s.speakers ?? [])
         .map((sp) => (typeof sp === 'string' ? speakers.get(sp) : sp.name ?? speakers.get(sp.id)))
         .filter((n): n is string => !!n),
+      speakerPhotos: (s.speakers ?? []).map((sp) => photos.get(typeof sp === 'string' ? sp : sp.id) ?? null),
       isService: !!s.isServiceSession,
     });
   }
