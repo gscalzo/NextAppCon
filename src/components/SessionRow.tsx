@@ -5,6 +5,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { trackColor } from '../lib/tracks.ts';
 import { formatTime } from '../lib/time.ts';
 import type { Session } from '../lib/types.ts';
+import { noOrphan } from '../lib/text.ts';
 import { useAgenda } from '../state/AgendaContext.tsx';
 import { Avatars } from './Avatars.tsx';
 import { Badge } from './Badge.tsx';
@@ -77,8 +78,10 @@ export function SessionRow({ session, now, clash = false, compact = false, index
                 <Text
                   style={[styles.title, compact && styles.compactTitle, session.isService && styles.serviceTitle]}
                   numberOfLines={compact ? 2 : 3}
+                  lineBreakStrategyIOS="standard"
+                  textBreakStrategy="balanced"
                 >
-                  {session.title}
+                  {noOrphan(session.title)}
                 </Text>
                 {compact ? (
                   <Text style={styles.meta} numberOfLines={1}>

@@ -13,6 +13,7 @@ import { TrackChip } from '../../components/TrackChip.tsx';
 import { otherOptions } from '../../lib/plan.ts';
 import { findClashes } from '../../lib/schedule.ts';
 import { dayKey, formatDayLabel, formatTime } from '../../lib/time.ts';
+import { noOrphan } from '../../lib/text.ts';
 import { useAgenda } from '../../state/AgendaContext.tsx';
 
 /** Luma's event-page detail row: an icon tile, a bold line and a grey line under it. */
@@ -82,7 +83,9 @@ export default function SessionScreen() {
         </View>
       </View>
 
-      <Text style={styles.title}>{session.title}</Text>
+      <Text style={styles.title} lineBreakStrategyIOS="standard" textBreakStrategy="balanced">
+        {noOrphan(session.title)}
+      </Text>
 
       {speakers.length > 0 && (
         <View style={styles.hostRow}>
@@ -201,7 +204,9 @@ export default function SessionScreen() {
                 <Pressable style={styles.optionTap} onPress={() => router.replace(`/session/${o.id}`)}>
                   <Cover session={o} size={44} />
                   <View style={styles.listBody}>
-                    <Text style={styles.listTitle}>{o.title}</Text>
+                    <Text style={styles.listTitle} lineBreakStrategyIOS="standard" textBreakStrategy="balanced">
+                      {noOrphan(o.title)}
+                    </Text>
                     <Text style={styles.listMeta}>
                       {formatTime(o.startsAt)} – {formatTime(o.endsAt)} · {o.room}
                     </Text>

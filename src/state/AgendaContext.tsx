@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 
 import { PLAN } from '../data/plan.ts';
 import { toggled, withNote, type TalkNotes } from '../lib/personal.ts';
@@ -9,7 +9,7 @@ import { findClashes } from '../lib/schedule.ts';
 import { formatTime } from '../lib/time.ts';
 import type { AgendaCache, Session, Speaker } from '../lib/types.ts';
 import { DEFAULT_SESSIONIZE_ID, fetchAgenda } from './agendaSource.ts';
-import { ensureNotificationPermission, rescheduleReminders } from './notifications.ts';
+import { ensureNotificationPermission, notificationsGranted, rescheduleReminders } from './notifications.ts';
 import { storage } from './storage.ts';
 
 const STALE_AFTER_MS = 30 * 60_000;
@@ -117,6 +117,16 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     () => sessions.filter((s) => favIds.has(s.id)),
     [sessions, favIds],
   );
+
+  // The first answer can be stale (the iOS prompt may resolve late, or the user changes it in Settings),
+  // so re-read the permission whenever the app comes back to the foreground.
+  useEffect(() => {
+    if (!ready) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') notificationsGranted().then(setNotificationsAllowed).catch(() => {});
+    });
+    return () => sub.remove();
+  }, [ready]);
 
   // Keep reminders in sync with favs and with agenda changes (moved talks).
   useEffect(() => {

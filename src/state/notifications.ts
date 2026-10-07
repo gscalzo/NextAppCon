@@ -18,6 +18,11 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/** Reads the current permission without prompting. */
+export async function notificationsGranted(): Promise<boolean> {
+  return (await Notifications.getPermissionsAsync()).granted;
+}
+
 export async function ensureNotificationPermission(): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('talks', {
