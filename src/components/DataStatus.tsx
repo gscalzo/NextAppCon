@@ -1,7 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useAgenda } from '../state/AgendaContext.tsx';
-import { colors } from './theme.ts';
+import { colors, font, gutter } from './theme.ts';
 
 export function ago(ms: number): string {
   const mins = Math.round((Date.now() - ms) / 60_000);
@@ -17,7 +17,7 @@ export function DataStatus() {
   if (status.kind === 'loading') {
     return (
       <View style={styles.row}>
-        <ActivityIndicator size="small" />
+        <ActivityIndicator size="small" color={colors.muted} />
         <Text style={styles.text}>Updating agenda…</Text>
       </View>
     );
@@ -25,7 +25,8 @@ export function DataStatus() {
   if (status.kind === 'error' && fetchedAt) {
     return (
       <View style={styles.row}>
-        <Text style={styles.text}>Offline · showing agenda saved {ago(fetchedAt)}</Text>
+        <View style={styles.dot} />
+        <Text style={styles.text}>Offline · agenda saved {ago(fetchedAt)}</Text>
       </View>
     );
   }
@@ -33,6 +34,7 @@ export function DataStatus() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 6 },
-  text: { fontSize: 12, color: colors.muted },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: gutter, paddingVertical: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.faint },
+  text: { ...font.meta, color: colors.muted },
 });

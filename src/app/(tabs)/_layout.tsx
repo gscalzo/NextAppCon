@@ -10,7 +10,7 @@ function NowAccessory() {
 
 export default function TabsLayout() {
   return (
-    <NativeTabs tintColor={colors.accent} minimizeBehavior="onScrollDown">
+    <NativeTabs tintColor={colors.text} minimizeBehavior="onScrollDown">
       <NativeTabs.BottomAccessory>
         <NowAccessory />
       </NativeTabs.BottomAccessory>
@@ -20,7 +20,7 @@ export default function TabsLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="all">
         <NativeTabs.Trigger.Label>All talks</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="list.bullet.rectangle" md="list" />
+        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_today" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>

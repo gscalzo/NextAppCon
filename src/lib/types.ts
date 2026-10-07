@@ -10,6 +10,8 @@ export type Session = {
   /** Sub-conference / track, e.g. "droidCon". */
   track: string | null;
   speakers: string[];
+  /** Speaker photo URLs, parallel to the session's Sessionize speakers; absent in agendas saved before photos. */
+  speakerPhotos?: (string | null)[];
   /** Breaks, lunch, registration: shown but not favable. */
   isService: boolean;
 };
