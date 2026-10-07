@@ -65,7 +65,7 @@ jobs:
       - name: Build release APK
         working-directory: android
         timeout-minutes: 40
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       # Release builds are signed with the debug keystore by default. When a
       # release keystore is configured in repo secrets, re-sign with it so the
