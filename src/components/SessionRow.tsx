@@ -11,7 +11,8 @@ import { Avatars } from './Avatars.tsx';
 import { Badge } from './Badge.tsx';
 import { Cover } from './Cover.tsx';
 import { FadeIn, usePop, usePressScale, usePulse } from './motion.tsx';
-import { colors, font, gutter } from './theme.ts';
+import { Star } from './Star.tsx';
+import { colors, font, gutter, ripple } from './theme.ts';
 
 type Props = { session: Session; now: number; clash?: boolean; compact?: boolean; index?: number };
 
@@ -55,7 +56,12 @@ export function SessionRow({ session, now, clash = false, compact = false, index
     <FadeIn index={index}>
       <Link href={`/session/${session.id}`} asChild>
         <Link.Trigger>
-          <Pressable {...press.handlers} accessibilityRole="button" accessibilityLabel={session.title}>
+          <Pressable
+            {...press.handlers}
+            android_ripple={ripple}
+            accessibilityRole="button"
+            accessibilityLabel={session.title}
+          >
             <Animated.View style={[styles.row, compact && styles.compact, past && styles.past, press.style]}>
               <View>
                 <Cover session={session} size={compact ? 40 : COVER} />
@@ -93,14 +99,18 @@ export function SessionRow({ session, now, clash = false, compact = false, index
                       {live ? (
                         <Animated.View style={[styles.liveDot, pulse]} />
                       ) : (
-                        <SymbolView name="clock" size={13} tintColor={colors.faint} />
+                        <SymbolView
+                          name={{ ios: 'clock', android: 'schedule' }}
+                          size={13}
+                          tintColor={colors.faint}
+                        />
                       )}
                       <Text style={[styles.meta, live && styles.live]}>
                         {formatTime(session.startsAt)} – {formatTime(session.endsAt)} · {minutes} min
                       </Text>
                       {hasNote && (
                         <SymbolView
-                          name="note.text"
+                          name={{ ios: 'note.text', android: 'sticky_note_2' }}
                           size={13}
                           tintColor={colors.faint}
                           accessibilityLabel="Has notes"
@@ -110,7 +120,11 @@ export function SessionRow({ session, now, clash = false, compact = false, index
                     </View>
                     {(!!session.room || !!session.track) && (
                       <View style={styles.metaRow}>
-                        <SymbolView name="mappin.and.ellipse" size={13} tintColor={colors.faint} />
+                        <SymbolView
+                          name={{ ios: 'mappin.and.ellipse', android: 'location_on' }}
+                          size={13}
+                          tintColor={colors.faint}
+                        />
                         <Text style={[styles.meta, styles.shrink]} numberOfLines={1}>
                           {session.room || session.track}
                         </Text>
@@ -133,12 +147,7 @@ export function SessionRow({ session, now, clash = false, compact = false, index
                   style={styles.star}
                 >
                   <Animated.View style={star.style}>
-                    <SymbolView
-                      name={fav ? 'star.fill' : 'star'}
-                      tintColor={fav ? colors.star : colors.faint}
-                      size={compact ? 17 : 21}
-                      fallback={<Text style={{ fontSize: 18, color: fav ? colors.star : colors.faint }}>★</Text>}
-                    />
+                    <Star filled={fav} color={fav ? colors.star : colors.faint} size={compact ? 17 : 21} />
                   </Animated.View>
                 </Pressable>
               )}

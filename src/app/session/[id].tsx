@@ -8,7 +8,8 @@ import { Badge } from '../../components/Badge.tsx';
 import { Cover } from '../../components/Cover.tsx';
 import { usePop } from '../../components/motion.tsx';
 import { MyTalkNotes } from '../../components/MyTalkNotes.tsx';
-import { colors, font, gutter, radius } from '../../components/theme.ts';
+import { Star } from '../../components/Star.tsx';
+import { colors, font, gutter, radius, ripple } from '../../components/theme.ts';
 import { TrackChip } from '../../components/TrackChip.tsx';
 import { otherOptions } from '../../lib/plan.ts';
 import { findClashes } from '../../lib/schedule.ts';
@@ -109,11 +110,18 @@ export default function SessionScreen() {
 
       <View style={styles.info}>
         <InfoRow
-          icon="calendar"
+          icon={{ ios: 'calendar', android: 'calendar_today' }}
           title={formatDayLabel(dayKey(session.startsAt))}
           sub={`${formatTime(session.startsAt)} – ${formatTime(session.endsAt)} · ${minutes} min`}
         />
-        {!!session.room && <InfoRow icon="mappin.and.ellipse" title={session.room} tint={colors.accent} sub="Room" />}
+        {!!session.room && (
+          <InfoRow
+            icon={{ ios: 'mappin.and.ellipse', android: 'location_on' }}
+            title={session.room}
+            tint={colors.accent}
+            sub="Room"
+          />
+        )}
       </View>
 
       {!session.isService && (
@@ -126,7 +134,7 @@ export default function SessionScreen() {
           style={({ pressed }) => [styles.button, fav && styles.buttonFav, pressed && { opacity: 0.85 }]}
         >
           <Animated.View style={star.style}>
-            <SymbolView name={fav ? 'star.fill' : 'star'} size={18} tintColor={fav ? colors.star : colors.onInk} />
+            <Star filled={fav} size={18} color={fav ? colors.star : colors.onInk} />
           </Animated.View>
           <Text style={[styles.buttonText, fav && { color: colors.text }]}>{fav ? 'In my plan' : 'Add to my plan'}</Text>
         </Pressable>
@@ -176,6 +184,7 @@ export default function SessionScreen() {
                 onPress={() => openSpeaker(profile.id)}
                 accessibilityRole="button"
                 accessibilityLabel={`${profile.name}, bio`}
+                android_ripple={ripple}
                 style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}
               >
                 <Avatars names={[profile.name]} photos={[profile.photoUrl ?? photo]} size={44} />
@@ -188,7 +197,11 @@ export default function SessionScreen() {
                   )}
                 </View>
                 <Text style={styles.bioLink}>Bio</Text>
-                <SymbolView name="chevron.right" size={13} tintColor={colors.faint} />
+                <SymbolView
+                  name={{ ios: 'chevron.right', android: 'chevron_right' }}
+                  size={13}
+                  tintColor={colors.faint}
+                />
               </Pressable>
             ) : null,
           )}
@@ -214,7 +227,7 @@ export default function SessionScreen() {
                   </View>
                 </Pressable>
                 {chosen ? (
-                  <SymbolView name="star.fill" size={20} tintColor={colors.star} />
+                  <Star filled size={20} color={colors.star} />
                 ) : (
                   <Pressable onPress={() => switchTo(o)} style={styles.switch} hitSlop={8}>
                     <Text style={styles.switchText}>Switch</Text>
@@ -258,7 +271,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: colors.ink,
     paddingVertical: 14,
-    borderRadius: radius.control,
+    borderRadius: radius.button,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',

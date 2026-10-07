@@ -7,7 +7,7 @@ import type { Session } from '../lib/types.ts';
 import { noOrphan } from '../lib/text.ts';
 import { Cover } from './Cover.tsx';
 import { FadeIn, usePressScale, usePulse } from './motion.tsx';
-import { colors, font, gutter, radius } from './theme.ts';
+import { colors, font, gutter, isAndroid, radius } from './theme.ts';
 import { useNowNext } from './useNow.ts';
 
 function whenLabel(session: Session, running: boolean, now: number): string {
@@ -80,7 +80,7 @@ export function NowNextCard() {
           </View>
           {!!session.room && (
             <View style={styles.roomPill}>
-              <SymbolView name="location.fill" size={13} tintColor={colors.accent} />
+              <SymbolView name={{ ios: 'location.fill', android: 'near_me' }} size={13} tintColor={colors.accent} />
               <Text style={styles.roomText} numberOfLines={1}>
                 {running ? 'In ' : 'Go to '}
                 {session.room}
@@ -116,14 +116,14 @@ const styles = StyleSheet.create({
     gap: 14,
     borderRadius: radius.card + 6,
     borderCurve: 'continuous',
-    experimental_backgroundImage: 'linear-gradient(135deg, #FFE9DB 0%, #FBE4F1 50%, #E6ECFF 100%)',
+    experimental_backgroundImage: colors.heroGradient,
   },
   heroIdle: { gap: 4 },
   kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kicker: { ...font.meta, flex: 1, color: colors.text, fontWeight: '600' },
   heroClock: { ...font.meta, ...font.time, color: colors.muted },
   heroMain: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  heroTitle: { ...font.display, fontSize: 20, lineHeight: 25, color: colors.text },
+  heroTitle: { ...font.display, fontSize: 20, lineHeight: 25, color: isAndroid ? colors.hero : colors.text },
   heroSpeakers: { ...font.meta, fontSize: 14, color: colors.muted },
   roomPill: {
     flexDirection: 'row',
@@ -131,9 +131,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 11,
-    borderRadius: radius.control,
+    borderRadius: radius.button,
     borderCurve: 'continuous',
-    backgroundColor: '#FFFFFFCC',
+    backgroundColor: isAndroid ? colors.bg : '#FFFFFFCC',
   },
   roomText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
   roomTime: { ...font.meta, ...font.time, color: colors.muted },

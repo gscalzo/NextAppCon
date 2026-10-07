@@ -4,7 +4,8 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 
 import { Avatars } from '../../components/Avatars.tsx';
 import { Cover } from '../../components/Cover.tsx';
-import { colors, font, gutter, radius } from '../../components/theme.ts';
+import { Star } from '../../components/Star.tsx';
+import { colors, font, gutter, radius, ripple } from '../../components/theme.ts';
 import { dayKey, formatDayLabel, formatTime } from '../../lib/time.ts';
 import { useAgenda } from '../../state/AgendaContext.tsx';
 
@@ -32,7 +33,11 @@ export default function SpeakerScreen() {
                 accessibilityRole="link"
                 style={({ pressed }) => [styles.link, pressed && styles.pressed]}
               >
-                <SymbolView name="arrow.up.right" size={12} tintColor={colors.text} />
+                <SymbolView
+                  name={{ ios: 'arrow.up.right', android: 'arrow_outward' }}
+                  size={12}
+                  tintColor={colors.text}
+                />
                 <Text style={styles.linkText}>{l.title}</Text>
               </Pressable>
             ))}
@@ -56,6 +61,7 @@ export default function SpeakerScreen() {
             <Pressable
               key={t.id}
               onPress={() => router.push(`/session/${t.id}`)}
+              android_ripple={ripple}
               style={({ pressed }) => [styles.talk, pressed && styles.pressed]}
             >
               <Cover session={t} size={44} />
@@ -66,8 +72,12 @@ export default function SpeakerScreen() {
                   {t.room ? ` · ${t.room}` : ''}
                 </Text>
               </View>
-              {favIds.has(t.id) && <SymbolView name="star.fill" size={17} tintColor={colors.star} />}
-              <SymbolView name="chevron.right" size={13} tintColor={colors.faint} />
+              {favIds.has(t.id) && <Star filled size={17} color={colors.star} />}
+              <SymbolView
+                name={{ ios: 'chevron.right', android: 'chevron_right' }}
+                size={13}
+                tintColor={colors.faint}
+              />
             </Pressable>
           ))}
         </View>

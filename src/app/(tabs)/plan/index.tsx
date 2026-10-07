@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { DataStatus } from '../../../components/DataStatus.tsx';
 import { DayHeader } from '../../../components/DayHeader.tsx';
@@ -28,7 +28,7 @@ function Notice({
   tone,
   children,
 }: {
-  icon: 'bell.slash' | 'exclamationmark.triangle';
+  icon: SymbolViewProps['name'];
   tone: 'muted' | 'danger';
   children: ReactNode;
 }) {
@@ -80,7 +80,11 @@ export default function PlanScreen() {
               accessibilityLabel={showAlternatives ? 'Hide alternatives' : 'Show alternatives'}
             >
               <SymbolView
-                name={showAlternatives ? 'rectangle.stack.fill' : 'rectangle.stack'}
+                name={
+                  showAlternatives
+                    ? { ios: 'rectangle.stack.fill', android: 'layers' }
+                    : { ios: 'rectangle.stack', android: 'layers_clear' }
+                }
                 tintColor={colors.text}
                 size={22}
               />
@@ -100,13 +104,13 @@ export default function PlanScreen() {
             <DataStatus />
             <NowNextCard />
             {notificationsAllowed === false && (
-              <Notice icon="bell.slash" tone="muted">
-                Notifications are off, so you won’t get the {LEAD_MINUTES}-minute “go to” reminders. Enable them for
-                Expo Go in iOS Settings.
+              <Notice icon={{ ios: 'bell.slash', android: 'notifications_off' }} tone="muted">
+                Notifications are off, so you won’t get the {LEAD_MINUTES}-minute “go to” reminders. Enable them
+                {Platform.OS === 'android' ? ' for this app in Android Settings.' : ' for Expo Go in iOS Settings.'}
               </Notice>
             )}
             {clashes.size > 0 && (
-              <Notice icon="exclamationmark.triangle" tone="danger">
+              <Notice icon={{ ios: 'exclamationmark.triangle', android: 'warning' }} tone="danger">
                 Some favourites overlap. They’re marked Clash.
               </Notice>
             )}
@@ -121,7 +125,7 @@ export default function PlanScreen() {
         ListEmptyComponent={
           <View style={styles.emptyBox}>
             <View style={styles.emptyIcon}>
-              <SymbolView name="star" size={24} tintColor={colors.muted} />
+              <SymbolView name={{ ios: 'star', android: 'star' }} size={24} tintColor={colors.muted} />
             </View>
             <Text style={styles.emptyTitle}>Your plan is empty</Text>
             <Text style={styles.empty}>Star talks in All talks, or restore your plan in Settings.</Text>

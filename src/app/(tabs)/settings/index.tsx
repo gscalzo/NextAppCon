@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ago } from '../../../components/DataStatus.tsx';
-import { colors, font, gutter, radius } from '../../../components/theme.ts';
+import { colors, font, gutter, isAndroid, radius, ripple } from '../../../components/theme.ts';
 import { normalizeSessionizeId } from '../../../lib/sessionize.ts';
 import { useAgenda } from '../../../state/AgendaContext.tsx';
 import { DEFAULT_SESSIONIZE_ID } from '../../../state/agendaSource.ts';
@@ -44,7 +44,8 @@ function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed, disabled && { opacity: 0.5 }]}
+      android_ripple={ripple}
+      style={({ pressed }) => [styles.row, pressed && !isAndroid && styles.pressed, disabled && { opacity: 0.5 }]}
     >
       <Text style={[styles.buttonText, destructive && { color: colors.danger }]}>{label}</Text>
     </Pressable>
@@ -132,21 +133,27 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: gutter, paddingTop: 8, paddingBottom: 48, gap: 24 },
   groupWrap: { gap: 8 },
-  h: { ...font.meta, fontWeight: '600', color: colors.muted, marginLeft: 4 },
-  group: { backgroundColor: colors.card, borderRadius: radius.card, borderCurve: 'continuous', overflow: 'hidden' },
+  h: { ...font.meta, fontWeight: '600', color: isAndroid ? colors.ink : colors.muted, marginLeft: 4 },
+  // iOS: one inset grouped box with hairlines. Android: an M3 Expressive segmented
+  // list, where each row is its own tile, 2dp apart, and the group's rounded clip
+  // gives the first and last rows the large outer corners.
+  group: isAndroid
+    ? { gap: 2, borderRadius: radius.card - 8, overflow: 'hidden' }
+    : { backgroundColor: colors.card, borderRadius: radius.card, borderCurve: 'continuous', overflow: 'hidden' },
   footer: { ...font.meta, fontWeight: '400', color: colors.muted, lineHeight: 18, marginHorizontal: 4 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    minHeight: 50,
+    minHeight: isAndroid ? 56 : 50,
     paddingHorizontal: 16,
+    ...(isAndroid && { backgroundColor: colors.card, borderRadius: 4 }),
   },
-  rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  rowDivider: isAndroid ? {} : { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   pressed: { backgroundColor: colors.fill },
   label: { fontSize: 16, color: colors.text },
   value: { fontSize: 16, color: colors.muted, flexShrink: 1, ...font.time },
   input: { flex: 1, fontSize: 16, paddingVertical: 12, color: colors.text },
-  buttonText: { fontSize: 16, fontWeight: '500', color: colors.text },
+  buttonText: { fontSize: 16, fontWeight: '500', color: isAndroid ? colors.ink : colors.text },
 });
