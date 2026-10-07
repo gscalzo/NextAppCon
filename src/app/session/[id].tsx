@@ -10,7 +10,7 @@ import { usePop } from '../../components/motion.tsx';
 import { MyTalkNotes } from '../../components/MyTalkNotes.tsx';
 import { SheetHandle } from '../../components/SheetHandle.tsx';
 import { Star } from '../../components/Star.tsx';
-import { colors, font, gutter, radius, ripple } from '../../components/theme.ts';
+import { colors, font, gutter, isAndroid, radius, ripple } from '../../components/theme.ts';
 import { TrackChip } from '../../components/TrackChip.tsx';
 import { otherOptions } from '../../lib/plan.ts';
 import { findClashes } from '../../lib/schedule.ts';
@@ -70,6 +70,7 @@ export default function SessionScreen() {
 
   return (
     <>
+      <SheetHandle />
       <ScrollView
         style={styles.screen}
         // Lets the Android bottom sheet expand to full height before the content scrolls.
@@ -243,14 +244,13 @@ export default function SessionScreen() {
           </Section>
         )}
       </ScrollView>
-      <SheetHandle />
     </>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: gutter, paddingTop: 28, paddingBottom: 48, gap: 16 },
+  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 8 : 28, paddingBottom: 48, gap: 16 },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 14 },
   badges: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   title: { ...font.display, color: colors.text },

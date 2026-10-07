@@ -4,7 +4,8 @@ import { colors, isAndroid } from './theme.ts';
 
 /**
  * M3 bottom sheet drag handle. iOS draws its own grabber (sheetGrabberVisible),
- * Android draws nothing, so sheets render this after their content.
+ * Android draws nothing, so sheets render this above their ScrollView, as a
+ * fixed strip in the sheet colour that content scrolls under.
  */
 export function SheetHandle() {
   if (!isAndroid) return null;
@@ -16,6 +17,6 @@ export function SheetHandle() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', paddingTop: 14 },
+  wrap: { alignItems: 'center', paddingTop: 14, paddingBottom: 10, backgroundColor: colors.bg },
   handle: { width: 32, height: 4, borderRadius: 2, backgroundColor: colors.faint },
 });

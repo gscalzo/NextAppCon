@@ -6,7 +6,7 @@ import { Avatars } from '../../components/Avatars.tsx';
 import { Cover } from '../../components/Cover.tsx';
 import { SheetHandle } from '../../components/SheetHandle.tsx';
 import { Star } from '../../components/Star.tsx';
-import { colors, font, gutter, radius, ripple } from '../../components/theme.ts';
+import { colors, font, gutter, isAndroid, radius, ripple } from '../../components/theme.ts';
 import { dayKey, formatDayLabel, formatTime } from '../../lib/time.ts';
 import { useAgenda } from '../../state/AgendaContext.tsx';
 
@@ -21,6 +21,7 @@ export default function SpeakerScreen() {
 
   return (
     <>
+      <SheetHandle />
       {/* nestedScrollEnabled lets the Android bottom sheet expand before the content scrolls. */}
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} nestedScrollEnabled>
         <View style={styles.header}>
@@ -86,14 +87,13 @@ export default function SpeakerScreen() {
           </View>
         )}
       </ScrollView>
-      <SheetHandle />
     </>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: gutter, paddingTop: 32, paddingBottom: 48, gap: 16 },
+  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 12 : 32, paddingBottom: 48, gap: 16 },
   header: { alignItems: 'center', gap: 6, paddingBottom: 4 },
   name: { ...font.display, color: colors.text, textAlign: 'center', marginTop: 8 },
   tagLine: { ...font.body, color: colors.muted, textAlign: 'center' },
