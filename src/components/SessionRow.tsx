@@ -17,8 +17,10 @@ type Props = { session: Session; now: number; clash?: boolean; compact?: boolean
 const COVER = 68;
 
 export function SessionRow({ session, now, clash = false, compact = false, index = 0 }: Props) {
-  const { favIds, toggleFav, switchTo, planEntry } = useAgenda();
+  const { favIds, toggleFav, switchTo, planEntry, attendedIds, notes } = useAgenda();
   const fav = favIds.has(session.id);
+  const attended = attendedIds.has(session.id);
+  const hasNote = !!notes[session.id];
   const entry = planEntry(session.id);
   const live = session.startsAt <= now && now < session.endsAt;
   const past = session.endsAt <= now;
@@ -28,13 +30,15 @@ export function SessionRow({ session, now, clash = false, compact = false, index
   const minutes = Math.round((session.endsAt - session.startsAt) / 60_000);
   const status = live
     ? { label: 'Live', color: colors.now }
-    : clash
-      ? { label: 'Clash', color: colors.danger }
-      : keynote
-        ? { label: 'Keynote', color: colors.accent }
-        : topPick
-          ? { label: 'Top pick', color: colors.star }
-          : null;
+    : attended
+      ? { label: 'Attended', color: colors.success }
+      : clash
+        ? { label: 'Clash', color: colors.danger }
+        : keynote
+          ? { label: 'Keynote', color: colors.accent }
+          : topPick
+            ? { label: 'Top pick', color: colors.star }
+            : null;
 
   const press = usePressScale();
   const star = usePop();
@@ -91,6 +95,15 @@ export function SessionRow({ session, now, clash = false, compact = false, index
                       <Text style={[styles.meta, live && styles.live]}>
                         {formatTime(session.startsAt)} – {formatTime(session.endsAt)} · {minutes} min
                       </Text>
+                      {hasNote && (
+                        <SymbolView
+                          name="note.text"
+                          size={13}
+                          tintColor={colors.faint}
+                          accessibilityLabel="Has notes"
+                          fallback={<Text style={styles.meta}>✎</Text>}
+                        />
+                      )}
                     </View>
                     {(!!session.room || !!session.track) && (
                       <View style={styles.metaRow}>

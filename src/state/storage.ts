@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { TalkNotes } from '../lib/personal.ts';
 import type { AgendaCache } from '../lib/types.ts';
 
 const KEYS = {
@@ -7,6 +8,8 @@ const KEYS = {
   favs: 'favs:v1',
   manualIds: 'sessionizeIds:v1',
   planImported: 'planImported:v1',
+  notes: 'talkNotes:v1',
+  attended: 'attended:v1',
 };
 
 async function read<T>(key: string): Promise<T | null> {
@@ -34,4 +37,8 @@ export const storage = {
   saveManualIds: (ids: string[]) => write(KEYS.manualIds, ids),
   loadPlanImported: async () => (await read<boolean>(KEYS.planImported)) ?? false,
   savePlanImported: () => write(KEYS.planImported, true),
+  loadNotes: async () => (await read<TalkNotes>(KEYS.notes)) ?? {},
+  saveNotes: (notes: TalkNotes) => write(KEYS.notes, notes),
+  loadAttended: async () => (await read<string[]>(KEYS.attended)) ?? [],
+  saveAttended: (ids: string[]) => write(KEYS.attended, ids),
 };

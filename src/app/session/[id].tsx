@@ -7,6 +7,7 @@ import { Avatars } from '../../components/Avatars.tsx';
 import { Badge } from '../../components/Badge.tsx';
 import { Cover } from '../../components/Cover.tsx';
 import { usePop } from '../../components/motion.tsx';
+import { MyTalkNotes } from '../../components/MyTalkNotes.tsx';
 import { colors, font, gutter, radius } from '../../components/theme.ts';
 import { TrackChip } from '../../components/TrackChip.tsx';
 import { otherOptions } from '../../lib/plan.ts';
@@ -65,7 +66,12 @@ export default function SessionScreen() {
   const openSpeaker = (speakerId: string) => router.push(`/speaker/${speakerId}`);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode="interactive"
+    >
       <View style={styles.hero}>
         <Cover session={session} size={88} />
         <View style={styles.badges}>
@@ -144,6 +150,12 @@ export default function SessionScreen() {
             </Text>
           ))}
         </View>
+      )}
+
+      {!session.isService && (
+        <Section title="My notes">
+          <MyTalkNotes key={session.id} sessionId={session.id} />
+        </Section>
       )}
 
       {!!session.description && (

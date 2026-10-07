@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { PLAN } from '../src/data/plan.ts';
+import { toggled, withNote } from '../src/lib/personal.ts';
 import { indexPlan, otherOptions, seedFavourites } from '../src/lib/plan.ts';
 import { reminderText } from '../src/lib/reminders.ts';
 import { nowLineIndex } from '../src/lib/schedule.ts';
@@ -60,4 +61,21 @@ test('now line position', () => {
   assert.equal(nowLineIndex(items, at('10:30')), 2);
   assert.equal(nowLineIndex(items, at('11:00')), -1);
   assert.equal(nowLineIndex([], at('10:00')), -1);
+});
+
+test('withNote stores, replaces and clears a talk note', () => {
+  const empty = {};
+  const one = withNote(empty, 'a', 'Great demo');
+  assert.deepEqual(one, { a: 'Great demo' });
+  assert.deepEqual(empty, {}, 'does not mutate');
+  assert.equal(withNote(one, 'a', 'Great demo'), one, 'unchanged text keeps identity');
+  assert.deepEqual(withNote(one, 'a', '   '), {});
+  assert.equal(withNote(empty, 'b', ''), empty);
+});
+
+test('toggled adds and removes an attended id', () => {
+  const on = toggled(new Set(), 'a');
+  assert.deepEqual([...on], ['a']);
+  assert.deepEqual([...toggled(on, 'a')], []);
+  assert.deepEqual([...on], ['a'], 'does not mutate');
 });
