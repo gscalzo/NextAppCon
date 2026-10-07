@@ -57,7 +57,9 @@ jobs:
         working-directory: android
         run: |
           sed -i '/^org.gradle.jvmargs=/d' gradle.properties
+          # The generated file has no trailing newline, so start on a new line.
           {
+            echo
             echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
             echo 'kotlin.daemon.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g'
           } >> gradle.properties
