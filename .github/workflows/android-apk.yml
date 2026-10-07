@@ -51,8 +51,20 @@ jobs:
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install --clean
 
+      # The template's 2 GB heap / 512 MB metaspace runs out on the release
+      # build (KSP and lint hit Metaspace OOM). Runners have 16 GB.
+      - name: Raise Gradle memory
+        working-directory: android
+        run: |
+          sed -i '/^org.gradle.jvmargs=/d' gradle.properties
+          {
+            echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+            echo 'kotlin.daemon.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g'
+          } >> gradle.properties
+
       - name: Build release APK
         working-directory: android
+        timeout-minutes: 40
         run: ./gradlew assembleRelease --no-daemon
 
       # Release builds are signed with the debug keystore by default. When a
