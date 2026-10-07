@@ -11,9 +11,10 @@ import { NowLine } from '../../../components/NowLine.tsx';
 import { NowNextCard } from '../../../components/NowNext.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
 import { colors, font, gutter, radius } from '../../../components/theme.ts';
+import { useLaunchScroll, type ListLocation } from '../../../components/useLaunchScroll.ts';
 import { useNow } from '../../../components/useNow.ts';
 import { otherOptions } from '../../../lib/plan.ts';
-import { clashingIds, groupByDay, nowLineIndex } from '../../../lib/schedule.ts';
+import { clashingIds, groupByDay, launchIndex, nowLineIndex } from '../../../lib/schedule.ts';
 import type { Session } from '../../../lib/types.ts';
 import { useAgenda } from '../../../state/AgendaContext.tsx';
 import { LEAD_MINUTES } from '../../../state/notifications.ts';
@@ -64,6 +65,21 @@ export default function PlanScreen() {
     return { day, data };
   });
 
+  // Open on the favourite running now or next (or the now line just above it).
+  const launchFav = favs[launchIndex(favs, now)];
+  let launchAt: ListLocation | null = null;
+  if (launchFav) {
+    const sectionIndex = sections.findIndex((s) => s.data.some((it) => it.key === launchFav.id));
+    if (sectionIndex !== -1) {
+      const data = sections[sectionIndex].data;
+      let i = data.findIndex((it) => it.key === launchFav.id);
+      if (data[i - 1]?.kind === 'now') i -= 1;
+      // itemIndex 0 is the day header. The very first row needs no scroll at all.
+      if (sectionIndex > 0 || i > 0) launchAt = { sectionIndex, itemIndex: i === 0 ? 0 : i + 1 };
+    }
+  }
+  const { listRef, onScrollToIndexFailed } = useLaunchScroll<Item, (typeof sections)[number]>(launchAt, sections.length > 0);
+
   if (sessions.length === 0) return <EmptyAgenda />;
 
   return (
@@ -93,6 +109,8 @@ export default function PlanScreen() {
         }}
       />
       <SectionList
+        ref={listRef}
+        onScrollToIndexFailed={onScrollToIndexFailed}
         sections={sections}
         keyExtractor={(item) => item.key}
         contentInsetAdjustmentBehavior="automatic"
