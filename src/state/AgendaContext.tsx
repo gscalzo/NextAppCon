@@ -7,13 +7,14 @@ import { toggled, withNote, type TalkNotes } from '../lib/personal.ts';
 import { indexPlan, seedFavourites, type PlanEntry } from '../lib/plan.ts';
 import { findClashes } from '../lib/schedule.ts';
 import { formatTime } from '../lib/time.ts';
-import type { AgendaCache, Session } from '../lib/types.ts';
-import { DEFAULT_SESSIONIZE_ID, fetchSessions } from './agendaSource.ts';
+import type { AgendaCache, Session, Speaker } from '../lib/types.ts';
+import { DEFAULT_SESSIONIZE_ID, fetchAgenda } from './agendaSource.ts';
 import { ensureNotificationPermission, rescheduleReminders } from './notifications.ts';
 import { storage } from './storage.ts';
 
 const STALE_AFTER_MS = 30 * 60_000;
 const NO_SESSIONS: Session[] = [];
+const NO_SPEAKERS: Speaker[] = [];
 const PLAN_INDEX = indexPlan(PLAN);
 
 type Status = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string };
@@ -22,6 +23,7 @@ type AgendaState = {
   ready: boolean;
   sessions: Session[];
   sessionsById: Map<string, Session>;
+  speakersById: Map<string, Speaker>;
   fetchedAt: number | null;
   sourceIds: string[];
   manualIds: string[];
@@ -68,8 +70,8 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     try {
       const cachedIds = current?.sessionizeId.split(',').filter(Boolean) ?? [];
       const sourceIds = ids.length ? ids : cachedIds.length ? cachedIds : [DEFAULT_SESSIONIZE_ID];
-      const sessions = await fetchSessions(sourceIds);
-      const next: AgendaCache = { sessionizeId: sourceIds.join(','), fetchedAt: Date.now(), sessions };
+      const { sessions, speakers } = await fetchAgenda(sourceIds);
+      const next: AgendaCache = { sessionizeId: sourceIds.join(','), fetchedAt: Date.now(), sessions, speakers };
       setCache(next);
       await storage.saveAgenda(next);
       setStatus({ kind: 'idle' });
@@ -103,12 +105,14 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
       setAttendedIds(new Set(attended));
       setReady(true);
       setNotificationsAllowed(await ensureNotificationPermission().catch(() => false));
-      if (!agenda || Date.now() - agenda.fetchedAt > STALE_AFTER_MS) await refreshWith(ids, agenda);
+      if (!agenda || !agenda.speakers || Date.now() - agenda.fetchedAt > STALE_AFTER_MS) await refreshWith(ids, agenda);
     })();
   }, [refreshWith]);
 
   const sessions = cache?.sessions ?? NO_SESSIONS;
   const sessionsById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
+  const speakers = cache?.speakers ?? NO_SPEAKERS;
+  const speakersById = useMemo(() => new Map(speakers.map((s) => [s.id, s])), [speakers]);
   const favs = useMemo(
     () => sessions.filter((s) => favIds.has(s.id)),
     [sessions, favIds],
@@ -207,6 +211,7 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     ready,
     sessions,
     sessionsById,
+    speakersById,
     fetchedAt: cache?.fetchedAt ?? null,
     sourceIds: cache?.sessionizeId.split(',').filter(Boolean) ?? [],
     manualIds,

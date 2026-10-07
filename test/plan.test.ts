@@ -10,7 +10,7 @@ import { parseEventTime } from '../src/lib/time.ts';
 import type { Session } from '../src/lib/types.ts';
 
 const talk = (over: Partial<Session> = {}): Session => ({
-  id: '1', title: 'Talk', description: '', room: 'agentic codingCon 1', track: null, speakers: ['Ada'],
+  id: '1', title: 'Talk', description: '', room: 'agentic codingCon 1', track: null, speakers: ['Ada'], speakerIds: ['ada'],
   isService: false, startsAt: parseEventTime('2026-10-07T10:20:00'), endsAt: parseEventTime('2026-10-07T11:00:00'),
   ...over,
 });

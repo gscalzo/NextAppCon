@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { clashingIds, currentOrNextFav, findClashes, groupByDay, overlaps } from '../src/lib/schedule.ts';
-import { normalizeSessionizeId, parseSessionizeAll } from '../src/lib/sessionize.ts';
+import { normalizeSessionizeId, parseSessionizeAll, parseSessionizeSpeakers } from '../src/lib/sessionize.ts';
 import { formatCountdown, formatDayLabel, formatTime, parseEventTime } from '../src/lib/time.ts';
 import type { Session } from '../src/lib/types.ts';
 
@@ -23,7 +23,11 @@ const fixture = {
     { id: '104', title: 'Unscheduled', startsAt: null, endsAt: null, speakers: [], categoryItems: [] },
   ],
   speakers: [
-    { id: 's1', fullName: 'Ada Droid', profilePicture: 'https://cdn.sessionize.com/image/ada.png' },
+    {
+      id: 's1', fullName: 'Ada Droid', tagLine: ' Android GDE ', bio: ' Writes Compose. ',
+      profilePicture: 'https://cdn.sessionize.com/image/ada.png',
+      links: [{ title: 'LinkedIn', url: 'https://linkedin.com/in/ada' }, { title: 'Broken' }],
+    },
     { id: 's2', firstName: 'Tim', lastName: 'Swift' },
   ],
   categories: [
@@ -34,7 +38,7 @@ const fixture = {
 };
 
 const mk = (id: string, start: string, end: string): Session => ({
-  id, title: id, description: '', room: '', track: null, speakers: [], isService: false,
+  id, title: id, description: '', room: '', track: null, speakers: [], speakerIds: [], isService: false,
   startsAt: parseEventTime(start), endsAt: parseEventTime(end),
 });
 
@@ -60,6 +64,7 @@ test('parses Sessionize All view with track, room and speakers', () => {
   assert.equal(compose.track, 'droidCon');
   assert.equal(compose.room, 'Stage A');
   assert.deepEqual(compose.speakers, ['Ada Droid']);
+  assert.deepEqual(compose.speakerIds, ['s1']);
   assert.equal(swift.track, 'swiftCon');
   assert.deepEqual(swift.speakers, ['Tim Swift']);
   assert.deepEqual(compose.speakerPhotos, ['https://cdn.sessionize.com/image/ada.png']);
@@ -68,6 +73,16 @@ test('parses Sessionize All view with track, room and speakers', () => {
   assert.equal(lunch.isService, true);
   assert.equal(lunch.room, '');
   assert.throws(() => parseSessionizeAll({ foo: 1 }));
+});
+
+test('parses speaker bios, taglines, photos and links', () => {
+  const [ada, tim] = parseSessionizeSpeakers(fixture);
+  assert.deepEqual(ada, {
+    id: 's1', name: 'Ada Droid', tagLine: 'Android GDE', bio: 'Writes Compose.',
+    photoUrl: 'https://cdn.sessionize.com/image/ada.png',
+    links: [{ title: 'LinkedIn', url: 'https://linkedin.com/in/ada' }],
+  });
+  assert.deepEqual(tim, { id: 's2', name: 'Tim Swift', tagLine: '', bio: '', photoUrl: null, links: [] });
 });
 
 test('track comes from the PRIMARY event category, not "other events"', () => {
