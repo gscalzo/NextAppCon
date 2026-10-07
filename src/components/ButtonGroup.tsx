@@ -3,11 +3,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, font, ripple } from './theme.ts';
 
 const OUTER = 999;
-const INNER = 8;
+const INNER = 10;
 
 /**
  * M3 Expressive connected button group, Android's take on a segmented control:
- * segments sit 2dp apart with small inner corners, and the selected one turns
+ * segments sit 4dp apart with small inner corners, and the selected one turns
  * primary and fully round.
  */
 export function ButtonGroup({
@@ -56,7 +56,7 @@ export function ButtonGroup({
 }
 
 const styles = StyleSheet.create({
-  group: { flexDirection: 'row', gap: 2 },
+  group: { flexDirection: 'row', gap: 4 },
   segment: { flex: 1, overflow: 'hidden', backgroundColor: colors.fill },
   selected: { backgroundColor: colors.ink },
   press: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
