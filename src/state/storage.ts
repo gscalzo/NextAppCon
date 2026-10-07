@@ -21,7 +21,12 @@ async function read<T>(key: string): Promise<T | null> {
 const write = (key: string, value: unknown) => AsyncStorage.setItem(key, JSON.stringify(value));
 
 export const storage = {
-  loadAgenda: () => read<AgendaCache>(KEYS.agenda),
+  loadAgenda: async () => {
+    const cache = await read<AgendaCache>(KEYS.agenda);
+    // Caches from before speaker bios have no speakerIds on sessions.
+    if (cache) cache.sessions = cache.sessions.map((s) => ({ ...s, speakerIds: s.speakerIds ?? [] }));
+    return cache;
+  },
   saveAgenda: (cache: AgendaCache) => write(KEYS.agenda, cache),
   loadFavs: async () => (await read<string[]>(KEYS.favs)) ?? [],
   saveFavs: (ids: string[]) => write(KEYS.favs, ids),
