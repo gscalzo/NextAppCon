@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, isAndroid } from './theme.ts';
 
@@ -14,6 +15,16 @@ export function SheetHandle() {
       <View style={styles.handle} />
     </View>
   );
+}
+
+/**
+ * Android draws edge to edge, so a sheet's last rows would end up under the
+ * gesture or button navigation bar. Returns the bottom padding a sheet's scroll
+ * content needs on top of its own; iOS sheets already stop above the home indicator.
+ */
+export function useSheetBottomInset() {
+  const { bottom } = useSafeAreaInsets();
+  return isAndroid ? bottom : 0;
 }
 
 const styles = StyleSheet.create({

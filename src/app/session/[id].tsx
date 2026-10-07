@@ -8,7 +8,7 @@ import { Badge } from '../../components/Badge.tsx';
 import { Cover } from '../../components/Cover.tsx';
 import { usePop } from '../../components/motion.tsx';
 import { MyTalkNotes } from '../../components/MyTalkNotes.tsx';
-import { SheetHandle } from '../../components/SheetHandle.tsx';
+import { SheetHandle, useSheetBottomInset } from '../../components/SheetHandle.tsx';
 import { Star } from '../../components/Star.tsx';
 import { colors, font, gutter, isAndroid, radius, ripple } from '../../components/theme.ts';
 import { TrackChip } from '../../components/TrackChip.tsx';
@@ -46,6 +46,7 @@ export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessionsById, speakersById, favIds, favs, toggleFav, switchTo, planEntry } = useAgenda();
   const star = usePop();
+  const bottomInset = useSheetBottomInset();
   const session = sessionsById.get(id);
   if (!session) {
     return <Text style={styles.missing}>This talk is no longer in the agenda.</Text>;
@@ -75,7 +76,7 @@ export default function SessionScreen() {
         style={styles.screen}
         // Lets the Android bottom sheet expand to full height before the content scrolls.
         nestedScrollEnabled
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: CONTENT_BOTTOM + bottomInset }]}
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="interactive"
       >
@@ -248,9 +249,11 @@ export default function SessionScreen() {
   );
 }
 
+const CONTENT_BOTTOM = 48;
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 8 : 28, paddingBottom: 48, gap: 16 },
+  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 8 : 28, gap: 16 },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 14 },
   badges: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   title: { ...font.display, color: colors.text },

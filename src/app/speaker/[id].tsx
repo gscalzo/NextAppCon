@@ -4,7 +4,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 
 import { Avatars } from '../../components/Avatars.tsx';
 import { Cover } from '../../components/Cover.tsx';
-import { SheetHandle } from '../../components/SheetHandle.tsx';
+import { SheetHandle, useSheetBottomInset } from '../../components/SheetHandle.tsx';
 import { Star } from '../../components/Star.tsx';
 import { colors, font, gutter, isAndroid, radius, ripple } from '../../components/theme.ts';
 import { dayKey, formatDayLabel, formatTime } from '../../lib/time.ts';
@@ -13,6 +13,7 @@ import { useAgenda } from '../../state/AgendaContext.tsx';
 export default function SpeakerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { speakersById, sessions, favIds } = useAgenda();
+  const bottomInset = useSheetBottomInset();
   const speaker = speakersById.get(id);
   if (!speaker) {
     return <Text style={styles.missing}>No bio for this speaker yet. Tap Update now in Settings to fetch it.</Text>;
@@ -23,7 +24,7 @@ export default function SpeakerScreen() {
     <>
       <SheetHandle />
       {/* nestedScrollEnabled lets the Android bottom sheet expand before the content scrolls. */}
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content} nestedScrollEnabled>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: CONTENT_BOTTOM + bottomInset }]} nestedScrollEnabled>
         <View style={styles.header}>
           <Avatars names={[speaker.name]} photos={[speaker.photoUrl]} size={96} />
           <Text style={styles.name}>{speaker.name}</Text>
@@ -91,9 +92,11 @@ export default function SpeakerScreen() {
   );
 }
 
+const CONTENT_BOTTOM = 48;
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 12 : 32, paddingBottom: 48, gap: 16 },
+  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 12 : 32, gap: 16 },
   header: { alignItems: 'center', gap: 6, paddingBottom: 4 },
   name: { ...font.display, color: colors.text, textAlign: 'center', marginTop: 8 },
   tagLine: { ...font.body, color: colors.muted, textAlign: 'center' },
