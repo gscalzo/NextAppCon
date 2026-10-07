@@ -1,19 +1,24 @@
 import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 
+import agendaSnapshot from '../data/agenda-snapshot.json';
 import { PLAN } from '../data/plan.ts';
+import { toggled, withNote, type TalkNotes } from '../lib/personal.ts';
 import { indexPlan, seedFavourites, type PlanEntry } from '../lib/plan.ts';
 import { findClashes } from '../lib/schedule.ts';
 import { formatTime } from '../lib/time.ts';
-import type { AgendaCache, Session } from '../lib/types.ts';
-import { DEFAULT_SESSIONIZE_ID, fetchSessions } from './agendaSource.ts';
-import { ensureNotificationPermission, rescheduleReminders } from './notifications.ts';
+import type { AgendaCache, Session, Speaker } from '../lib/types.ts';
+import { DEFAULT_SESSIONIZE_ID, fetchAgenda } from './agendaSource.ts';
+import { ensureNotificationPermission, notificationsGranted, rescheduleReminders } from './notifications.ts';
 import { storage } from './storage.ts';
 
 const STALE_AFTER_MS = 30 * 60_000;
 const NO_SESSIONS: Session[] = [];
+const NO_SPEAKERS: Speaker[] = [];
 const PLAN_INDEX = indexPlan(PLAN);
+// Shipped with the app so a fresh install has the agenda before (or without) its first download.
+const BUNDLED_AGENDA = agendaSnapshot as AgendaCache;
 
 type Status = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string };
 
@@ -21,6 +26,7 @@ type AgendaState = {
   ready: boolean;
   sessions: Session[];
   sessionsById: Map<string, Session>;
+  speakersById: Map<string, Speaker>;
   fetchedAt: number | null;
   sourceIds: string[];
   manualIds: string[];
@@ -37,6 +43,11 @@ type AgendaState = {
   switchTo: (session: Session) => void;
   /** Replaces all favourites with the plan's original picks. */
   resetToPlan: () => void;
+  notes: TalkNotes;
+  /** Stores a personal note for a talk; blank text deletes it. */
+  setNote: (sessionId: string, text: string) => void;
+  attendedIds: Set<string>;
+  toggleAttended: (sessionId: string) => void;
 };
 
 const AgendaContext = createContext<AgendaState | null>(null);
@@ -48,6 +59,8 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
   const [cache, setCache] = useState<AgendaCache | null>(null);
   const [manualIds, setManualIdsState] = useState<string[]>([]);
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState<TalkNotes>({});
+  const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [remindersScheduled, setRemindersScheduled] = useState<number | null>(null);
   const [notificationsAllowed, setNotificationsAllowed] = useState<boolean | null>(null);
@@ -60,8 +73,8 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     try {
       const cachedIds = current?.sessionizeId.split(',').filter(Boolean) ?? [];
       const sourceIds = ids.length ? ids : cachedIds.length ? cachedIds : [DEFAULT_SESSIONIZE_ID];
-      const sessions = await fetchSessions(sourceIds);
-      const next: AgendaCache = { sessionizeId: sourceIds.join(','), fetchedAt: Date.now(), sessions };
+      const { sessions, speakers } = await fetchAgenda(sourceIds);
+      const next: AgendaCache = { sessionizeId: sourceIds.join(','), fetchedAt: Date.now(), sessions, speakers };
       setCache(next);
       await storage.saveAgenda(next);
       setStatus({ kind: 'idle' });
@@ -74,12 +87,16 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const [agenda, storedFavs, ids, planImported] = await Promise.all([
+      const [storedAgenda, storedFavs, ids, planImported, storedNotes, attended] = await Promise.all([
         storage.loadAgenda(),
         storage.loadFavs(),
         storage.loadManualIds(),
         storage.loadPlanImported(),
+        storage.loadNotes(),
+        storage.loadAttended(),
       ]);
+      // Custom Sessionize IDs don't match the bundled event, so those wait for the download.
+      const agenda = storedAgenda ?? (ids.length ? null : BUNDLED_AGENDA);
       // The plan is imported once; later un-favs stick.
       const favs = planImported ? new Set(storedFavs) : seedFavourites(storedFavs, PLAN);
       if (!planImported) {
@@ -89,18 +106,32 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
       setCache(agenda);
       setFavIds(favs);
       setManualIdsState(ids);
+      setNotes(storedNotes);
+      setAttendedIds(new Set(attended));
       setReady(true);
       setNotificationsAllowed(await ensureNotificationPermission().catch(() => false));
-      if (!agenda || Date.now() - agenda.fetchedAt > STALE_AFTER_MS) await refreshWith(ids, agenda);
+      if (!agenda || !agenda.speakers || Date.now() - agenda.fetchedAt > STALE_AFTER_MS) await refreshWith(ids, agenda);
     })();
   }, [refreshWith]);
 
   const sessions = cache?.sessions ?? NO_SESSIONS;
   const sessionsById = useMemo(() => new Map(sessions.map((s) => [s.id, s])), [sessions]);
+  const speakers = cache?.speakers ?? NO_SPEAKERS;
+  const speakersById = useMemo(() => new Map(speakers.map((s) => [s.id, s])), [speakers]);
   const favs = useMemo(
     () => sessions.filter((s) => favIds.has(s.id)),
     [sessions, favIds],
   );
+
+  // The first answer can be stale (the iOS prompt may resolve late, or the user changes it in Settings),
+  // so re-read the permission whenever the app comes back to the foreground.
+  useEffect(() => {
+    if (!ready) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') notificationsGranted().then(setNotificationsAllowed).catch(() => {});
+    });
+    return () => sub.remove();
+  }, [ready]);
 
   // Keep reminders in sync with favs and with agenda changes (moved talks).
   useEffect(() => {
@@ -164,6 +195,24 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [saveFavs]);
 
+  useEffect(() => {
+    if (ready) storage.saveNotes(notes);
+  }, [ready, notes]);
+
+  const setNote = useCallback((sessionId: string, text: string) => {
+    setNotes((current) => withNote(current, sessionId, text));
+  }, []);
+
+  const toggleAttended = useCallback(
+    (sessionId: string) => {
+      const next = toggled(attendedIds, sessionId);
+      setAttendedIds(next);
+      storage.saveAttended([...next]);
+      Haptics.selectionAsync();
+    },
+    [attendedIds],
+  );
+
   const setManualIds = useCallback(
     async (ids: string[]) => {
       setManualIdsState(ids);
@@ -177,6 +226,7 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     ready,
     sessions,
     sessionsById,
+    speakersById,
     fetchedAt: cache?.fetchedAt ?? null,
     sourceIds: cache?.sessionizeId.split(',').filter(Boolean) ?? [],
     manualIds,
@@ -191,6 +241,10 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
     toggleFav,
     switchTo,
     resetToPlan,
+    notes,
+    setNote,
+    attendedIds,
+    toggleAttended,
   };
 
   return <AgendaContext.Provider value={value}>{children}</AgendaContext.Provider>;

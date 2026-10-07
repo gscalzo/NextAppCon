@@ -68,3 +68,21 @@ export function nowLineIndex(items: { startsAt: number; endsAt: number }[], now:
   const i = items.findIndex((s) => s.startsAt > now);
   return i === -1 ? items.length : i;
 }
+
+/**
+ * Which item a list should open on (items sorted by start): the one running now,
+ * else the next to start, else the last once everything has ended.
+ * -1 before the first starts, meaning stay at the top.
+ */
+export function launchIndex(items: { startsAt: number; endsAt: number }[], now: number): number {
+  if (items.length === 0 || now < items[0].startsAt) return -1;
+  const i = items.findIndex((s) => s.endsAt > now);
+  return i === -1 ? items.length - 1 : i;
+}
+
+/** Day to open on: today, else the next conference day, else the last one. */
+export function launchDay(dayKeys: string[], today: string): string {
+  if (dayKeys.includes(today)) return today;
+  const sorted = [...dayKeys].sort();
+  return sorted.find((d) => d > today) ?? sorted[sorted.length - 1];
+}

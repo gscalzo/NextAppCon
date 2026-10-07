@@ -3,15 +3,18 @@ import { Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
 
+import { ButtonGroup } from '../../../components/ButtonGroup.tsx';
 import { DataStatus } from '../../../components/DataStatus.tsx';
 import { EmptyAgenda } from '../../../components/EmptyAgenda.tsx';
+import { animateNextLayout } from '../../../components/motion.tsx';
 import { NowLine } from '../../../components/NowLine.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
-import { colors } from '../../../components/theme.ts';
+import { colors, font, gutter, isAndroid, radius } from '../../../components/theme.ts';
 import { TrackChip } from '../../../components/TrackChip.tsx';
+import { useLaunchScroll } from '../../../components/useLaunchScroll.ts';
 import { useNow } from '../../../components/useNow.ts';
-import { groupByDay, groupByStart, nowLineIndex } from '../../../lib/schedule.ts';
-import { dayKey, formatDayLabel, formatTime } from '../../../lib/time.ts';
+import { groupByDay, groupByStart, launchDay, launchIndex, nowLineIndex } from '../../../lib/schedule.ts';
+import { dayKey, formatDayLabel } from '../../../lib/time.ts';
 import type { Session } from '../../../lib/types.ts';
 import { useAgenda } from '../../../state/AgendaContext.tsx';
 
@@ -24,7 +27,7 @@ export default function AllTalksScreen() {
   const dayKeys = [...days.keys()];
   const today = dayKey(now);
   const [pickedDay, setPickedDay] = useState<string | null>(null);
-  const day = pickedDay && days.has(pickedDay) ? pickedDay : days.has(today) ? today : dayKeys[0];
+  const day = pickedDay && days.has(pickedDay) ? pickedDay : launchDay(dayKeys, today);
 
   const tracks = [...new Set(sessions.map((s) => s.track).filter((t): t is string => !!t))].sort();
   const [track, setTrack] = useState<string | null>(null);
@@ -38,10 +41,8 @@ export default function AllTalksScreen() {
         (!q || `${s.title} ${s.speakers.join(' ')} ${s.room} ${s.track ?? ''}`.toLowerCase().includes(q)),
     ),
   );
-  const nowAt = nowLineIndex(
-    slots.map((slot) => ({ startsAt: slot.startsAt, endsAt: Math.max(...slot.data.map((s) => s.endsAt)) })),
-    now,
-  );
+  const spans = slots.map((slot) => ({ startsAt: slot.startsAt, endsAt: Math.max(...slot.data.map((s) => s.endsAt)) }));
+  const nowAt = nowLineIndex(spans, now);
   const sections: Section[] = slots.map((slot) => ({
     key: String(slot.startsAt),
     startsAt: slot.startsAt,
@@ -49,6 +50,14 @@ export default function AllTalksScreen() {
     data: slot.data,
   }));
   if (nowAt !== -1) sections.splice(nowAt, 0, { key: 'now', startsAt: now, now: true, data: [] });
+  // Open on the slot running now, or the now line just above the next one. The now
+  // line can only sit at or after that slot, so the same index works after the splice.
+  const launchSlot = launchIndex(spans, now);
+  const { listRef, onScrollToIndexFailed } = useLaunchScroll<Session, Section>(
+    launchSlot > 0 ? { sectionIndex: launchSlot, itemIndex: 0 } : null,
+    sections.length > 0,
+    { searchBar: true },
+  );
 
   if (sessions.length === 0) return <EmptyAgenda />;
 
@@ -65,6 +74,8 @@ export default function AllTalksScreen() {
         }}
       />
       <SectionList
+        ref={listRef}
+        onScrollToIndexFailed={onScrollToIndexFailed}
         sections={sections}
         keyExtractor={(s) => s.id}
         contentInsetAdjustmentBehavior="automatic"
@@ -74,22 +85,45 @@ export default function AllTalksScreen() {
         ListHeaderComponent={
           <View style={styles.controls}>
             <DataStatus />
-            <SegmentedControl
-              values={dayKeys.map(formatDayLabel)}
-              selectedIndex={Math.max(0, dayKeys.indexOf(day))}
-              onChange={(e) => setPickedDay(dayKeys[e.nativeEvent.selectedSegmentIndex])}
-              style={styles.segmented}
-            />
+            {isAndroid ? (
+              <ButtonGroup
+                values={dayKeys.map(formatDayLabel)}
+                selectedIndex={Math.max(0, dayKeys.indexOf(day))}
+                onChange={(i) => {
+                  animateNextLayout();
+                  setPickedDay(dayKeys[i]);
+                }}
+                style={styles.segmented}
+              />
+            ) : (
+              <SegmentedControl
+                values={dayKeys.map(formatDayLabel)}
+                selectedIndex={Math.max(0, dayKeys.indexOf(day))}
+                onChange={(e) => {
+                  animateNextLayout();
+                  setPickedDay(dayKeys[e.nativeEvent.selectedSegmentIndex]);
+                }}
+                style={styles.segmented}
+              />
+            )}
             {tracks.length > 0 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-                <Pressable onPress={() => setTrack(null)} style={[styles.allChip, !track && styles.allChipActive]}>
-                  <Text style={[styles.allText, !track && styles.allTextActive]}>All</Text>
+                <Pressable
+                  onPress={() => {
+                    animateNextLayout();
+                    setTrack(null);
+                  }}
+                  style={[styles.allChip, !track && styles.allChipActive]}
+                >
+                  <Text style={[styles.allText, !track && styles.allTextActive]}>All tracks</Text>
                 </Pressable>
                 {tracks.map((t) => (
                   <Pressable
                     key={t}
-                    onPress={() => setTrack(track === t ? null : t)}
-                    style={{ opacity: !track || track === t ? 1 : 0.4 }}
+                    onPress={() => {
+                      animateNextLayout();
+                      setTrack(track === t ? null : t);
+                    }}
                   >
                     <TrackChip track={t} active={track === t} />
                   </Pressable>
@@ -98,12 +132,10 @@ export default function AllTalksScreen() {
             )}
           </View>
         }
-        renderSectionHeader={({ section }) =>
-          section.now ? <NowLine now={now} /> : <Text style={styles.slot}>{formatTime(section.startsAt)}</Text>
-        }
-        renderItem={({ item }) => <SessionRow session={item} now={now} />}
+        renderSectionHeader={({ section }) => (section.now ? <NowLine now={now} /> : <View style={styles.slot} />)}
+        renderItem={({ item, index }) => <SessionRow session={item} now={now} index={index} />}
         ListEmptyComponent={<Text style={styles.empty}>No talks match.</Text>}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       />
     </>
   );
@@ -111,20 +143,20 @@ export default function AllTalksScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  controls: { gap: 10, paddingTop: 4, paddingBottom: 4 },
-  segmented: { marginHorizontal: 16 },
-  chips: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
-  allChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: colors.text },
-  allChipActive: { backgroundColor: colors.text },
-  allText: { fontSize: 12, fontWeight: '600', color: colors.text },
-  allTextActive: { color: colors.bg },
+  controls: { gap: 12, paddingTop: 4, paddingBottom: 8 },
+  segmented: { marginHorizontal: gutter },
+  chips: { paddingHorizontal: gutter, gap: 8, alignItems: 'center' },
+  allChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: radius.pill, backgroundColor: colors.fill },
+  allChipActive: { backgroundColor: colors.ink },
+  allText: { ...font.caption, fontSize: 13, color: colors.text },
+  allTextActive: { color: colors.onInk },
+  // Tiles already show each start time, so slots are separated by a hairline, not a heading.
   slot: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
-    fontWeight: '700',
-    color: colors.muted,
-    fontVariant: ['tabular-nums'],
+    marginHorizontal: gutter,
+    marginTop: 6,
+    marginBottom: 2,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
   },
-  empty: { textAlign: 'center', color: colors.muted, marginTop: 32 },
+  empty: { ...font.body, textAlign: 'center', color: colors.muted, marginTop: 40 },
 });

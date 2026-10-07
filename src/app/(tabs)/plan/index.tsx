@@ -1,18 +1,20 @@
 import { Stack } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text } from 'react-native';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { useState, type ReactNode } from 'react';
+import { Platform, Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { DataStatus } from '../../../components/DataStatus.tsx';
+import { DayHeader } from '../../../components/DayHeader.tsx';
 import { EmptyAgenda } from '../../../components/EmptyAgenda.tsx';
+import { animateNextLayout } from '../../../components/motion.tsx';
 import { NowLine } from '../../../components/NowLine.tsx';
 import { NowNextCard } from '../../../components/NowNext.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
-import { colors } from '../../../components/theme.ts';
+import { colors, font, gutter, radius } from '../../../components/theme.ts';
+import { useLaunchScroll, type ListLocation } from '../../../components/useLaunchScroll.ts';
 import { useNow } from '../../../components/useNow.ts';
 import { otherOptions } from '../../../lib/plan.ts';
-import { clashingIds, groupByDay, nowLineIndex } from '../../../lib/schedule.ts';
-import { formatDayLabel } from '../../../lib/time.ts';
+import { clashingIds, groupByDay, launchIndex, nowLineIndex } from '../../../lib/schedule.ts';
 import type { Session } from '../../../lib/types.ts';
 import { useAgenda } from '../../../state/AgendaContext.tsx';
 import { LEAD_MINUTES } from '../../../state/notifications.ts';
@@ -21,6 +23,24 @@ type Item =
   | { kind: 'fav'; key: string; session: Session }
   | { kind: 'alt'; key: string; session: Session }
   | { kind: 'now'; key: string };
+
+function Notice({
+  icon,
+  tone,
+  children,
+}: {
+  icon: SymbolViewProps['name'];
+  tone: 'muted' | 'danger';
+  children: ReactNode;
+}) {
+  const color = tone === 'danger' ? colors.danger : colors.muted;
+  return (
+    <View style={[styles.notice, tone === 'danger' && styles.noticeDanger]}>
+      <SymbolView name={icon} size={16} tintColor={color} />
+      <Text style={[styles.noticeText, { color }]}>{children}</Text>
+    </View>
+  );
+}
 
 export default function PlanScreen() {
   const { sessions, favs, favIds, sessionsById, planEntry, notificationsAllowed, status, refresh } = useAgenda();
@@ -45,6 +65,21 @@ export default function PlanScreen() {
     return { day, data };
   });
 
+  // Open on the favourite running now or next (or the now line just above it).
+  const launchFav = favs[launchIndex(favs, now)];
+  let launchAt: ListLocation | null = null;
+  if (launchFav) {
+    const sectionIndex = sections.findIndex((s) => s.data.some((it) => it.key === launchFav.id));
+    if (sectionIndex !== -1) {
+      const data = sections[sectionIndex].data;
+      let i = data.findIndex((it) => it.key === launchFav.id);
+      if (data[i - 1]?.kind === 'now') i -= 1;
+      // itemIndex 0 is the day header. The very first row needs no scroll at all.
+      if (sectionIndex > 0 || i > 0) launchAt = { sectionIndex, itemIndex: i === 0 ? 0 : i + 1 };
+    }
+  }
+  const { listRef, onScrollToIndexFailed } = useLaunchScroll<Item, (typeof sections)[number]>(launchAt, sections.length > 0);
+
   if (sessions.length === 0) return <EmptyAgenda />;
 
   return (
@@ -53,13 +88,20 @@ export default function PlanScreen() {
         options={{
           headerRight: () => (
             <Pressable
-              onPress={() => setShowAlternatives((v) => !v)}
+              onPress={() => {
+                animateNextLayout();
+                setShowAlternatives((v) => !v);
+              }}
               hitSlop={10}
               accessibilityLabel={showAlternatives ? 'Hide alternatives' : 'Show alternatives'}
             >
               <SymbolView
-                name={showAlternatives ? 'rectangle.stack.fill' : 'rectangle.stack'}
-                tintColor={colors.accent}
+                name={
+                  showAlternatives
+                    ? { ios: 'rectangle.stack.fill', android: 'layers' }
+                    : { ios: 'rectangle.stack', android: 'layers_clear' }
+                }
+                tintColor={colors.text}
                 size={22}
               />
             </Pressable>
@@ -67,6 +109,8 @@ export default function PlanScreen() {
         }}
       />
       <SectionList
+        ref={listRef}
+        onScrollToIndexFailed={onScrollToIndexFailed}
         sections={sections}
         keyExtractor={(item) => item.key}
         contentInsetAdjustmentBehavior="automatic"
@@ -78,26 +122,34 @@ export default function PlanScreen() {
             <DataStatus />
             <NowNextCard />
             {notificationsAllowed === false && (
-              <Text style={styles.warning}>
-                Notifications are off, so you won’t get the {LEAD_MINUTES}-minute “go to” reminders. Enable them for
-                Expo Go in iOS Settings.
-              </Text>
+              <Notice icon={{ ios: 'bell.slash', android: 'notifications_off' }} tone="muted">
+                Notifications are off, so you won’t get the {LEAD_MINUTES}-minute “go to” reminders. Enable them
+                {Platform.OS === 'android' ? ' for this app in Android Settings.' : ' for Expo Go in iOS Settings.'}
+              </Notice>
             )}
-            {clashes.size > 0 && <Text style={styles.warning}>Some favourites overlap: they’re marked CLASH.</Text>}
+            {clashes.size > 0 && (
+              <Notice icon={{ ios: 'exclamationmark.triangle', android: 'warning' }} tone="danger">
+                Some favourites overlap. They’re marked Clash.
+              </Notice>
+            )}
           </>
         }
-        renderSectionHeader={({ section }) => <Text style={styles.day}>{formatDayLabel(section.day)}</Text>}
-        renderItem={({ item }) => {
+        renderSectionHeader={({ section }) => <DayHeader day={section.day} now={now} />}
+        renderItem={({ item, index }) => {
           if (item.kind === 'now') return <NowLine now={now} />;
-          if (item.kind === 'alt') return <SessionRow session={item.session} now={now} compact />;
-          return <SessionRow session={item.session} now={now} clash={clashes.has(item.session.id)} />;
+          if (item.kind === 'alt') return <SessionRow session={item.session} now={now} compact index={index} />;
+          return <SessionRow session={item.session} now={now} clash={clashes.has(item.session.id)} index={index} />;
         }}
         ListEmptyComponent={
-          <Text style={styles.empty}>
-            No favourites. Star talks in All talks, or restore your plan in Settings.
-          </Text>
+          <View style={styles.emptyBox}>
+            <View style={styles.emptyIcon}>
+              <SymbolView name={{ ios: 'star', android: 'star' }} size={24} tintColor={colors.muted} />
+            </View>
+            <Text style={styles.emptyTitle}>Your plan is empty</Text>
+            <Text style={styles.empty}>Star talks in All talks, or restore your plan in Settings.</Text>
+          </View>
         }
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       />
     </>
   );
@@ -105,23 +157,29 @@ export default function PlanScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  day: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 6,
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginHorizontal: gutter - 4,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: radius.control,
+    borderCurve: 'continuous',
+    backgroundColor: colors.fill,
   },
-  warning: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: colors.dangerBg,
-    color: colors.danger,
-    fontSize: 13,
-    overflow: 'hidden',
+  noticeDanger: { backgroundColor: colors.dangerBg },
+  noticeText: { ...font.meta, flex: 1, lineHeight: 18 },
+  emptyBox: { alignItems: 'center', gap: 8, paddingHorizontal: 40, paddingTop: 48 },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.fill,
+    marginBottom: 4,
   },
-  empty: { textAlign: 'center', color: colors.muted, margin: 32, lineHeight: 20 },
+  emptyTitle: { ...font.title, color: colors.text },
+  empty: { ...font.body, textAlign: 'center', color: colors.muted },
 });

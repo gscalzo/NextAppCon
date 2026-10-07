@@ -1,15 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { trackColor } from '../lib/tracks.ts';
-import { colors } from './theme.ts';
+import { colors, font, radius } from './theme.ts';
 
-export function TrackChip({ track, active = true }: { track: string | null; active?: boolean }) {
+/** Track pill; `active` turns it ink, the way Luma marks a selected filter. */
+export function TrackChip({ track, active = false }: { track: string | null; active?: boolean }) {
   if (!track) return null;
-  const color = trackColor(track);
   return (
-    <View style={[styles.chip, { borderColor: color, backgroundColor: active ? color + '26' : 'transparent' }]}>
-      <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={styles.label} numberOfLines={1}>
+    <View style={[styles.chip, active && styles.active]}>
+      <View style={[styles.dot, { backgroundColor: trackColor(track) }]} />
+      <Text style={[styles.label, active && styles.activeLabel]} numberOfLines={1}>
         {track}
       </Text>
     </View>
@@ -21,12 +21,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    gap: 5,
+    backgroundColor: colors.fill,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 6,
   },
+  active: { backgroundColor: colors.ink },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  label: { fontSize: 12, fontWeight: '600', color: colors.text },
+  label: { ...font.caption, fontSize: 13, color: colors.text },
+  activeLabel: { color: colors.onInk },
 });

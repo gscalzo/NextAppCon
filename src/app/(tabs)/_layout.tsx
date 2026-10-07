@@ -1,16 +1,32 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { NowNextContent } from '../../components/NowNext.tsx';
-import { colors } from '../../components/theme.ts';
+import { colors, isAndroid } from '../../components/theme.ts';
 
 function NowAccessory() {
   const placement = NativeTabs.BottomAccessory.usePlacement();
   return <NowNextContent compact={placement === 'inline'} />;
 }
 
+// Material 3 navigation bar: tonal container, pill indicator in secondaryContainer,
+// emphasized label on the selected tab.
+const androidBar = isAndroid
+  ? ({
+      backgroundColor: colors.card,
+      indicatorColor: colors.selected,
+      rippleColor: colors.ripple,
+      iconColor: { default: colors.muted, selected: colors.onSelected },
+      labelStyle: {
+        default: { color: colors.muted, fontSize: 12, fontWeight: '500' },
+        selected: { color: colors.text, fontSize: 12, fontWeight: '700' },
+      },
+      labelVisibilityMode: 'labeled',
+    } as const)
+  : {};
+
 export default function TabsLayout() {
   return (
-    <NativeTabs tintColor={colors.accent} minimizeBehavior="onScrollDown">
+    <NativeTabs tintColor={colors.text} minimizeBehavior="onScrollDown" {...androidBar}>
       <NativeTabs.BottomAccessory>
         <NowAccessory />
       </NativeTabs.BottomAccessory>
@@ -20,7 +36,7 @@ export default function TabsLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="all">
         <NativeTabs.Trigger.Label>All talks</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="list.bullet.rectangle" md="list" />
+        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_today" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>

@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { clashingIds, currentOrNextFav, findClashes, groupByDay, overlaps } from '../src/lib/schedule.ts';
-import { normalizeSessionizeId, parseSessionizeAll } from '../src/lib/sessionize.ts';
+import {
+  clashingIds,
+  currentOrNextFav,
+  findClashes,
+  groupByDay,
+  launchDay,
+  launchIndex,
+  overlaps,
+} from '../src/lib/schedule.ts';
+import { normalizeSessionizeId, parseSessionizeAll, parseSessionizeSpeakers } from '../src/lib/sessionize.ts';
 import { formatCountdown, formatDayLabel, formatTime, parseEventTime } from '../src/lib/time.ts';
 import type { Session } from '../src/lib/types.ts';
 
@@ -22,7 +30,14 @@ const fixture = {
     },
     { id: '104', title: 'Unscheduled', startsAt: null, endsAt: null, speakers: [], categoryItems: [] },
   ],
-  speakers: [{ id: 's1', fullName: 'Ada Droid' }, { id: 's2', firstName: 'Tim', lastName: 'Swift' }],
+  speakers: [
+    {
+      id: 's1', fullName: 'Ada Droid', tagLine: ' Android GDE ', bio: ' Writes Compose. ',
+      profilePicture: 'https://cdn.sessionize.com/image/ada.png',
+      links: [{ title: 'LinkedIn', url: 'https://linkedin.com/in/ada' }, { title: 'Broken' }],
+    },
+    { id: 's2', firstName: 'Tim', lastName: 'Swift' },
+  ],
   categories: [
     { id: 1, title: 'Session format', items: [{ id: 2, name: 'Talk' }] },
     { id: 10, title: 'Conference', items: [{ id: 11, name: 'droidCon' }, { id: 12, name: 'swiftCon' }] },
@@ -31,7 +46,7 @@ const fixture = {
 };
 
 const mk = (id: string, start: string, end: string): Session => ({
-  id, title: id, description: '', room: '', track: null, speakers: [], isService: false,
+  id, title: id, description: '', room: '', track: null, speakers: [], speakerIds: [], isService: false,
   startsAt: parseEventTime(start), endsAt: parseEventTime(end),
 });
 
@@ -57,12 +72,25 @@ test('parses Sessionize All view with track, room and speakers', () => {
   assert.equal(compose.track, 'droidCon');
   assert.equal(compose.room, 'Stage A');
   assert.deepEqual(compose.speakers, ['Ada Droid']);
+  assert.deepEqual(compose.speakerIds, ['s1']);
   assert.equal(swift.track, 'swiftCon');
   assert.deepEqual(swift.speakers, ['Tim Swift']);
+  assert.deepEqual(compose.speakerPhotos, ['https://cdn.sessionize.com/image/ada.png']);
+  assert.deepEqual(swift.speakerPhotos, [null]);
   assert.equal(swift.description, '');
   assert.equal(lunch.isService, true);
   assert.equal(lunch.room, '');
   assert.throws(() => parseSessionizeAll({ foo: 1 }));
+});
+
+test('parses speaker bios, taglines, photos and links', () => {
+  const [ada, tim] = parseSessionizeSpeakers(fixture);
+  assert.deepEqual(ada, {
+    id: 's1', name: 'Ada Droid', tagLine: 'Android GDE', bio: 'Writes Compose.',
+    photoUrl: 'https://cdn.sessionize.com/image/ada.png',
+    links: [{ title: 'LinkedIn', url: 'https://linkedin.com/in/ada' }],
+  });
+  assert.deepEqual(tim, { id: 's2', name: 'Tim Swift', tagLine: '', bio: '', photoUrl: null, links: [] });
 });
 
 test('track comes from the PRIMARY event category, not "other events"', () => {
@@ -117,4 +145,24 @@ test('Sessionize ID normalisation', () => {
   assert.equal(normalizeSessionizeId('https://sessionize.com/api/v2/k9x2/view/All'), 'k9x2');
   assert.equal(normalizeSessionizeId('https://sessionize.com/api/v2/yak5yl8m/view/All'), 'yak5yl8m');
   assert.equal(normalizeSessionizeId('not an id!'), null);
+});
+
+test('launch position follows the clock', () => {
+  const at = (t: string) => parseEventTime(`2026-10-07T${t}:00`);
+  const items = [
+    { startsAt: at('09:00'), endsAt: at('09:40') },
+    { startsAt: at('10:00'), endsAt: at('10:40') },
+    { startsAt: at('11:00'), endsAt: at('11:40') },
+  ];
+  assert.equal(launchIndex(items, at('08:00')), -1);
+  assert.equal(launchIndex(items, at('09:10')), 0);
+  assert.equal(launchIndex(items, at('09:50')), 1);
+  assert.equal(launchIndex(items, at('18:00')), 2);
+  assert.equal(launchIndex([], at('09:10')), -1);
+
+  const days = ['2026-10-07', '2026-10-09'];
+  assert.equal(launchDay(days, '2026-10-01'), '2026-10-07');
+  assert.equal(launchDay(days, '2026-10-07'), '2026-10-07');
+  assert.equal(launchDay(days, '2026-10-08'), '2026-10-09');
+  assert.equal(launchDay(days, '2026-11-01'), '2026-10-09');
 });
