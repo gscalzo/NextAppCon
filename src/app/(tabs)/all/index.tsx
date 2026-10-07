@@ -11,8 +11,9 @@ import { NowLine } from '../../../components/NowLine.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
 import { colors, font, gutter, isAndroid, radius } from '../../../components/theme.ts';
 import { TrackChip } from '../../../components/TrackChip.tsx';
+import { useLaunchScroll } from '../../../components/useLaunchScroll.ts';
 import { useNow } from '../../../components/useNow.ts';
-import { groupByDay, groupByStart, nowLineIndex } from '../../../lib/schedule.ts';
+import { groupByDay, groupByStart, launchDay, launchIndex, nowLineIndex } from '../../../lib/schedule.ts';
 import { dayKey, formatDayLabel } from '../../../lib/time.ts';
 import type { Session } from '../../../lib/types.ts';
 import { useAgenda } from '../../../state/AgendaContext.tsx';
@@ -26,7 +27,7 @@ export default function AllTalksScreen() {
   const dayKeys = [...days.keys()];
   const today = dayKey(now);
   const [pickedDay, setPickedDay] = useState<string | null>(null);
-  const day = pickedDay && days.has(pickedDay) ? pickedDay : days.has(today) ? today : dayKeys[0];
+  const day = pickedDay && days.has(pickedDay) ? pickedDay : launchDay(dayKeys, today);
 
   const tracks = [...new Set(sessions.map((s) => s.track).filter((t): t is string => !!t))].sort();
   const [track, setTrack] = useState<string | null>(null);
@@ -40,10 +41,8 @@ export default function AllTalksScreen() {
         (!q || `${s.title} ${s.speakers.join(' ')} ${s.room} ${s.track ?? ''}`.toLowerCase().includes(q)),
     ),
   );
-  const nowAt = nowLineIndex(
-    slots.map((slot) => ({ startsAt: slot.startsAt, endsAt: Math.max(...slot.data.map((s) => s.endsAt)) })),
-    now,
-  );
+  const spans = slots.map((slot) => ({ startsAt: slot.startsAt, endsAt: Math.max(...slot.data.map((s) => s.endsAt)) }));
+  const nowAt = nowLineIndex(spans, now);
   const sections: Section[] = slots.map((slot) => ({
     key: String(slot.startsAt),
     startsAt: slot.startsAt,
@@ -51,6 +50,14 @@ export default function AllTalksScreen() {
     data: slot.data,
   }));
   if (nowAt !== -1) sections.splice(nowAt, 0, { key: 'now', startsAt: now, now: true, data: [] });
+  // Open on the slot running now, or the now line just above the next one. The now
+  // line can only sit at or after that slot, so the same index works after the splice.
+  const launchSlot = launchIndex(spans, now);
+  const { listRef, onScrollToIndexFailed } = useLaunchScroll<Session, Section>(
+    launchSlot > 0 ? { sectionIndex: launchSlot, itemIndex: 0 } : null,
+    sections.length > 0,
+    { searchBar: true },
+  );
 
   if (sessions.length === 0) return <EmptyAgenda />;
 
@@ -67,6 +74,8 @@ export default function AllTalksScreen() {
         }}
       />
       <SectionList
+        ref={listRef}
+        onScrollToIndexFailed={onScrollToIndexFailed}
         sections={sections}
         keyExtractor={(s) => s.id}
         contentInsetAdjustmentBehavior="automatic"

@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { clashingIds, currentOrNextFav, findClashes, groupByDay, overlaps } from '../src/lib/schedule.ts';
+import {
+  clashingIds,
+  currentOrNextFav,
+  findClashes,
+  groupByDay,
+  launchDay,
+  launchIndex,
+  overlaps,
+} from '../src/lib/schedule.ts';
 import { normalizeSessionizeId, parseSessionizeAll, parseSessionizeSpeakers } from '../src/lib/sessionize.ts';
 import { formatCountdown, formatDayLabel, formatTime, parseEventTime } from '../src/lib/time.ts';
 import type { Session } from '../src/lib/types.ts';
@@ -137,4 +145,24 @@ test('Sessionize ID normalisation', () => {
   assert.equal(normalizeSessionizeId('https://sessionize.com/api/v2/k9x2/view/All'), 'k9x2');
   assert.equal(normalizeSessionizeId('https://sessionize.com/api/v2/yak5yl8m/view/All'), 'yak5yl8m');
   assert.equal(normalizeSessionizeId('not an id!'), null);
+});
+
+test('launch position follows the clock', () => {
+  const at = (t: string) => parseEventTime(`2026-10-07T${t}:00`);
+  const items = [
+    { startsAt: at('09:00'), endsAt: at('09:40') },
+    { startsAt: at('10:00'), endsAt: at('10:40') },
+    { startsAt: at('11:00'), endsAt: at('11:40') },
+  ];
+  assert.equal(launchIndex(items, at('08:00')), -1);
+  assert.equal(launchIndex(items, at('09:10')), 0);
+  assert.equal(launchIndex(items, at('09:50')), 1);
+  assert.equal(launchIndex(items, at('18:00')), 2);
+  assert.equal(launchIndex([], at('09:10')), -1);
+
+  const days = ['2026-10-07', '2026-10-09'];
+  assert.equal(launchDay(days, '2026-10-01'), '2026-10-07');
+  assert.equal(launchDay(days, '2026-10-07'), '2026-10-07');
+  assert.equal(launchDay(days, '2026-10-08'), '2026-10-09');
+  assert.equal(launchDay(days, '2026-11-01'), '2026-10-09');
 });
