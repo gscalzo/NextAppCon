@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
@@ -6,16 +6,14 @@ import { trackColor } from '../lib/tracks.ts';
 import type { Session } from '../lib/types.ts';
 import { colors } from './theme.ts';
 
-type Symbol = 'cup.and.saucer.fill' | 'fork.knife' | 'person.text.rectangle.fill' | 'person.3.fill' | 'mic.fill';
-
-/** Icon for sessions without a speaker photo. */
-function symbolFor(session: Session): Symbol {
+/** Icon for sessions without a speaker photo, as SF Symbol and Material Symbol. */
+function symbolFor(session: Session): SymbolViewProps['name'] {
   const t = session.title.toLowerCase();
-  if (/lunch|dinner|food/.test(t)) return 'fork.knife';
-  if (/break|coffee/.test(t)) return 'cup.and.saucer.fill';
-  if (/registration|check-in/.test(t)) return 'person.text.rectangle.fill';
-  if (/network|meetup|gathering|party|roundtable/.test(t)) return 'person.3.fill';
-  return 'mic.fill';
+  if (/lunch|dinner|food/.test(t)) return { ios: 'fork.knife', android: 'restaurant' };
+  if (/break|coffee/.test(t)) return { ios: 'cup.and.saucer.fill', android: 'coffee' };
+  if (/registration|check-in/.test(t)) return { ios: 'person.text.rectangle.fill', android: 'badge' };
+  if (/network|meetup|gathering|party|roundtable/.test(t)) return { ios: 'person.3.fill', android: 'groups' };
+  return { ios: 'mic.fill', android: 'mic' };
 }
 
 /** Speaker photo that fades in once it has loaded. */

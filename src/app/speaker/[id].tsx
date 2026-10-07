@@ -4,7 +4,9 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 
 import { Avatars } from '../../components/Avatars.tsx';
 import { Cover } from '../../components/Cover.tsx';
-import { colors, font, gutter, radius } from '../../components/theme.ts';
+import { SheetHandle } from '../../components/SheetHandle.tsx';
+import { Star } from '../../components/Star.tsx';
+import { colors, font, gutter, isAndroid, radius, ripple } from '../../components/theme.ts';
 import { dayKey, formatDayLabel, formatTime } from '../../lib/time.ts';
 import { useAgenda } from '../../state/AgendaContext.tsx';
 
@@ -18,67 +20,80 @@ export default function SpeakerScreen() {
   const talks = sessions.filter((s) => s.speakerIds.includes(speaker.id));
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Avatars names={[speaker.name]} photos={[speaker.photoUrl]} size={96} />
-        <Text style={styles.name}>{speaker.name}</Text>
-        {!!speaker.tagLine && <Text style={styles.tagLine}>{speaker.tagLine}</Text>}
-        {speaker.links.length > 0 && (
-          <View style={styles.links}>
-            {speaker.links.map((l) => (
+    <>
+      <SheetHandle />
+      {/* nestedScrollEnabled lets the Android bottom sheet expand before the content scrolls. */}
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} nestedScrollEnabled>
+        <View style={styles.header}>
+          <Avatars names={[speaker.name]} photos={[speaker.photoUrl]} size={96} />
+          <Text style={styles.name}>{speaker.name}</Text>
+          {!!speaker.tagLine && <Text style={styles.tagLine}>{speaker.tagLine}</Text>}
+          {speaker.links.length > 0 && (
+            <View style={styles.links}>
+              {speaker.links.map((l) => (
+                <Pressable
+                  key={l.url}
+                  onPress={() => Linking.openURL(l.url)}
+                  accessibilityRole="link"
+                  style={({ pressed }) => [styles.link, pressed && styles.pressed]}
+                >
+                  <SymbolView
+                    name={{ ios: 'arrow.up.right', android: 'arrow_outward' }}
+                    size={12}
+                    tintColor={colors.text}
+                  />
+                  <Text style={styles.linkText}>{l.title}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About</Text>
+          {speaker.bio ? (
+            <Text style={styles.bio}>{speaker.bio}</Text>
+          ) : (
+            <Text style={styles.empty}>This speaker hasn’t added a bio.</Text>
+          )}
+        </View>
+
+        {talks.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{talks.length > 1 ? 'Talks' : 'Talk'}</Text>
+            {talks.map((t) => (
               <Pressable
-                key={l.url}
-                onPress={() => Linking.openURL(l.url)}
-                accessibilityRole="link"
-                style={({ pressed }) => [styles.link, pressed && styles.pressed]}
+                key={t.id}
+                onPress={() => router.push(`/session/${t.id}`)}
+                android_ripple={ripple}
+                style={({ pressed }) => [styles.talk, pressed && styles.pressed]}
               >
-                <SymbolView name="arrow.up.right" size={12} tintColor={colors.text} />
-                <Text style={styles.linkText}>{l.title}</Text>
+                <Cover session={t} size={44} />
+                <View style={styles.talkBody}>
+                  <Text style={styles.talkTitle}>{t.title}</Text>
+                  <Text style={styles.talkMeta}>
+                    {formatDayLabel(dayKey(t.startsAt))} · {formatTime(t.startsAt)} – {formatTime(t.endsAt)}
+                    {t.room ? ` · ${t.room}` : ''}
+                  </Text>
+                </View>
+                {favIds.has(t.id) && <Star filled size={17} color={colors.star} />}
+                <SymbolView
+                  name={{ ios: 'chevron.right', android: 'chevron_right' }}
+                  size={13}
+                  tintColor={colors.faint}
+                />
               </Pressable>
             ))}
           </View>
         )}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
-        {speaker.bio ? (
-          <Text style={styles.bio}>{speaker.bio}</Text>
-        ) : (
-          <Text style={styles.empty}>This speaker hasn’t added a bio.</Text>
-        )}
-      </View>
-
-      {talks.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{talks.length > 1 ? 'Talks' : 'Talk'}</Text>
-          {talks.map((t) => (
-            <Pressable
-              key={t.id}
-              onPress={() => router.push(`/session/${t.id}`)}
-              style={({ pressed }) => [styles.talk, pressed && styles.pressed]}
-            >
-              <Cover session={t} size={44} />
-              <View style={styles.talkBody}>
-                <Text style={styles.talkTitle}>{t.title}</Text>
-                <Text style={styles.talkMeta}>
-                  {formatDayLabel(dayKey(t.startsAt))} · {formatTime(t.startsAt)} – {formatTime(t.endsAt)}
-                  {t.room ? ` · ${t.room}` : ''}
-                </Text>
-              </View>
-              {favIds.has(t.id) && <SymbolView name="star.fill" size={17} tintColor={colors.star} />}
-              <SymbolView name="chevron.right" size={13} tintColor={colors.faint} />
-            </Pressable>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: gutter, paddingTop: 32, paddingBottom: 48, gap: 16 },
+  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 12 : 32, paddingBottom: 48, gap: 16 },
   header: { alignItems: 'center', gap: 6, paddingBottom: 4 },
   name: { ...font.display, color: colors.text, textAlign: 'center', marginTop: 8 },
   tagLine: { ...font.body, color: colors.muted, textAlign: 'center' },

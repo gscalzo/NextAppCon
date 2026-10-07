@@ -17,7 +17,7 @@ export function EmptyAgenda() {
   return (
     <View style={styles.box}>
       <View style={styles.icon}>
-        <SymbolView name="wifi.slash" size={26} tintColor={colors.muted} />
+        <SymbolView name={{ ios: 'wifi.slash', android: 'wifi_off' }} size={26} tintColor={colors.muted} />
       </View>
       <Text style={styles.title}>No agenda yet</Text>
       <Text style={styles.text}>{status.message}</Text>

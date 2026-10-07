@@ -8,7 +8,9 @@ import { Badge } from '../../components/Badge.tsx';
 import { Cover } from '../../components/Cover.tsx';
 import { usePop } from '../../components/motion.tsx';
 import { MyTalkNotes } from '../../components/MyTalkNotes.tsx';
-import { colors, font, gutter, radius } from '../../components/theme.ts';
+import { SheetHandle } from '../../components/SheetHandle.tsx';
+import { Star } from '../../components/Star.tsx';
+import { colors, font, gutter, isAndroid, radius, ripple } from '../../components/theme.ts';
 import { TrackChip } from '../../components/TrackChip.tsx';
 import { otherOptions } from '../../lib/plan.ts';
 import { findClashes } from '../../lib/schedule.ts';
@@ -67,171 +69,188 @@ export default function SessionScreen() {
   const openSpeaker = (speakerId: string) => router.push(`/speaker/${speakerId}`);
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      automaticallyAdjustKeyboardInsets
-      keyboardDismissMode="interactive"
-    >
-      <View style={styles.hero}>
-        <Cover session={session} size={88} />
-        <View style={styles.badges}>
-          <TrackChip track={session.track} />
-          {keynote && <Badge label="Your keynote" color={colors.accent} />}
-          {topPick && <Badge label="Top pick" color={colors.star} />}
-          {entry?.role === 'alternative' && <Badge label="Alternative" color={colors.muted} />}
+    <>
+      <SheetHandle />
+      <ScrollView
+        style={styles.screen}
+        // Lets the Android bottom sheet expand to full height before the content scrolls.
+        nestedScrollEnabled
+        contentContainerStyle={styles.content}
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="interactive"
+      >
+        <View style={styles.hero}>
+          <Cover session={session} size={88} />
+          <View style={styles.badges}>
+            <TrackChip track={session.track} />
+            {keynote && <Badge label="Your keynote" color={colors.accent} />}
+            {topPick && <Badge label="Top pick" color={colors.star} />}
+            {entry?.role === 'alternative' && <Badge label="Alternative" color={colors.muted} />}
+          </View>
         </View>
-      </View>
 
-      <Text style={styles.title} lineBreakStrategyIOS="standard" textBreakStrategy="balanced">
-        {noOrphan(session.title)}
-      </Text>
+        <Text style={styles.title} lineBreakStrategyIOS="standard" textBreakStrategy="balanced">
+          {noOrphan(session.title)}
+        </Text>
 
-      {speakers.length > 0 && (
-        <View style={styles.hostRow}>
-          <Avatars names={session.speakers} photos={speakers.map((sp) => sp.photo)} size={22} />
-          <Text style={styles.hosts}>
-            {speakers.map((sp, i) => (
-              <Text key={sp.id ?? sp.name}>
-                {i > 0 && ', '}
-                {sp.profile ? (
-                  <Text style={styles.hostLink} onPress={() => openSpeaker(sp.profile!.id)}>
-                    {sp.name}
-                  </Text>
-                ) : (
-                  sp.name
-                )}
+        {speakers.length > 0 && (
+          <View style={styles.hostRow}>
+            <Avatars names={session.speakers} photos={speakers.map((sp) => sp.photo)} size={22} />
+            <Text style={styles.hosts}>
+              {speakers.map((sp, i) => (
+                <Text key={sp.id ?? sp.name}>
+                  {i > 0 && ', '}
+                  {sp.profile ? (
+                    <Text style={styles.hostLink} onPress={() => openSpeaker(sp.profile!.id)}>
+                      {sp.name}
+                    </Text>
+                  ) : (
+                    sp.name
+                  )}
+                </Text>
+              ))}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.info}>
+          <InfoRow
+            icon={{ ios: 'calendar', android: 'calendar_today' }}
+            title={formatDayLabel(dayKey(session.startsAt))}
+            sub={`${formatTime(session.startsAt)} – ${formatTime(session.endsAt)} · ${minutes} min`}
+          />
+          {!!session.room && (
+            <InfoRow
+              icon={{ ios: 'mappin.and.ellipse', android: 'location_on' }}
+              title={session.room}
+              tint={colors.accent}
+              sub="Room"
+            />
+          )}
+        </View>
+
+        {!session.isService && (
+          <Pressable
+            onPress={() => {
+              star.pop();
+              toggleFav(session);
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.button, fav && styles.buttonFav, pressed && { opacity: 0.85 }]}
+          >
+            <Animated.View style={star.style}>
+              <Star filled={fav} size={18} color={fav ? colors.star : colors.onInk} />
+            </Animated.View>
+            <Text style={[styles.buttonText, fav && { color: colors.text }]}>{fav ? 'In my plan' : 'Add to my plan'}</Text>
+          </Pressable>
+        )}
+
+        {clashes.length > 0 && (
+          <View style={styles.clashBox}>
+            <Text style={styles.clashTitle}>Clashes with</Text>
+            {clashes.map((c) => (
+              <Text key={c.id} style={styles.clashItem}>
+                {formatTime(c.startsAt)}–{formatTime(c.endsAt)} {c.title}
               </Text>
             ))}
-          </Text>
-        </View>
-      )}
+          </View>
+        )}
 
-      <View style={styles.info}>
-        <InfoRow
-          icon="calendar"
-          title={formatDayLabel(dayKey(session.startsAt))}
-          sub={`${formatTime(session.startsAt)} – ${formatTime(session.endsAt)} · ${minutes} min`}
-        />
-        {!!session.room && <InfoRow icon="mappin.and.ellipse" title={session.room} tint={colors.accent} sub="Room" />}
-      </View>
+        {entry && (
+          <View style={styles.why}>
+            <Text style={styles.whyLabel}>Why it’s in your plan</Text>
+            <Text style={styles.body}>{entry.rationale}</Text>
+            {entry.notes.map((n) => (
+              <Text key={n} style={styles.note}>
+                {n}
+              </Text>
+            ))}
+          </View>
+        )}
 
-      {!session.isService && (
-        <Pressable
-          onPress={() => {
-            star.pop();
-            toggleFav(session);
-          }}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.button, fav && styles.buttonFav, pressed && { opacity: 0.85 }]}
-        >
-          <Animated.View style={star.style}>
-            <SymbolView name={fav ? 'star.fill' : 'star'} size={18} tintColor={fav ? colors.star : colors.onInk} />
-          </Animated.View>
-          <Text style={[styles.buttonText, fav && { color: colors.text }]}>{fav ? 'In my plan' : 'Add to my plan'}</Text>
-        </Pressable>
-      )}
+        {!session.isService && (
+          <Section title="My notes">
+            <MyTalkNotes key={session.id} sessionId={session.id} />
+          </Section>
+        )}
 
-      {clashes.length > 0 && (
-        <View style={styles.clashBox}>
-          <Text style={styles.clashTitle}>Clashes with</Text>
-          {clashes.map((c) => (
-            <Text key={c.id} style={styles.clashItem}>
-              {formatTime(c.startsAt)}–{formatTime(c.endsAt)} {c.title}
-            </Text>
-          ))}
-        </View>
-      )}
+        {!!session.description && (
+          <Section title="Abstract">
+            <Text style={styles.body}>{session.description}</Text>
+          </Section>
+        )}
 
-      {entry && (
-        <View style={styles.why}>
-          <Text style={styles.whyLabel}>Why it’s in your plan</Text>
-          <Text style={styles.body}>{entry.rationale}</Text>
-          {entry.notes.map((n) => (
-            <Text key={n} style={styles.note}>
-              {n}
-            </Text>
-          ))}
-        </View>
-      )}
+        {speakers.some((sp) => sp.profile) && (
+          <Section title={speakers.length > 1 ? 'Speakers' : 'Speaker'}>
+            {speakers.map(({ id, profile, photo }) =>
+              profile ? (
+                <Pressable
+                  key={id}
+                  onPress={() => openSpeaker(profile.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${profile.name}, bio`}
+                  android_ripple={ripple}
+                  style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}
+                >
+                  <Avatars names={[profile.name]} photos={[profile.photoUrl ?? photo]} size={44} />
+                  <View style={styles.listBody}>
+                    <Text style={styles.listTitle}>{profile.name}</Text>
+                    {!!profile.tagLine && (
+                      <Text style={styles.listMeta} numberOfLines={2}>
+                        {profile.tagLine}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={styles.bioLink}>Bio</Text>
+                  <SymbolView
+                    name={{ ios: 'chevron.right', android: 'chevron_right' }}
+                    size={13}
+                    tintColor={colors.faint}
+                  />
+                </Pressable>
+              ) : null,
+            )}
+          </Section>
+        )}
 
-      {!session.isService && (
-        <Section title="My notes">
-          <MyTalkNotes key={session.id} sessionId={session.id} />
-        </Section>
-      )}
-
-      {!!session.description && (
-        <Section title="Abstract">
-          <Text style={styles.body}>{session.description}</Text>
-        </Section>
-      )}
-
-      {speakers.some((sp) => sp.profile) && (
-        <Section title={speakers.length > 1 ? 'Speakers' : 'Speaker'}>
-          {speakers.map(({ id, profile, photo }) =>
-            profile ? (
-              <Pressable
-                key={id}
-                onPress={() => openSpeaker(profile.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`${profile.name}, bio`}
-                style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}
-              >
-                <Avatars names={[profile.name]} photos={[profile.photoUrl ?? photo]} size={44} />
-                <View style={styles.listBody}>
-                  <Text style={styles.listTitle}>{profile.name}</Text>
-                  {!!profile.tagLine && (
-                    <Text style={styles.listMeta} numberOfLines={2}>
-                      {profile.tagLine}
-                    </Text>
+        {options.length > 0 && (
+          <Section title="Other options in this slot">
+            {options.map(({ session: o, rationale }) => {
+              const chosen = favIds.has(o.id);
+              return (
+                <View key={o.id} style={styles.listRow}>
+                  <Pressable style={styles.optionTap} onPress={() => router.replace(`/session/${o.id}`)}>
+                    <Cover session={o} size={44} />
+                    <View style={styles.listBody}>
+                      <Text style={styles.listTitle} lineBreakStrategyIOS="standard" textBreakStrategy="balanced">
+                        {noOrphan(o.title)}
+                      </Text>
+                      <Text style={styles.listMeta}>
+                        {formatTime(o.startsAt)} – {formatTime(o.endsAt)} · {o.room}
+                      </Text>
+                      <Text style={styles.listMeta}>{rationale}</Text>
+                    </View>
+                  </Pressable>
+                  {chosen ? (
+                    <Star filled size={20} color={colors.star} />
+                  ) : (
+                    <Pressable onPress={() => switchTo(o)} style={styles.switch} hitSlop={8}>
+                      <Text style={styles.switchText}>Switch</Text>
+                    </Pressable>
                   )}
                 </View>
-                <Text style={styles.bioLink}>Bio</Text>
-                <SymbolView name="chevron.right" size={13} tintColor={colors.faint} />
-              </Pressable>
-            ) : null,
-          )}
-        </Section>
-      )}
-
-      {options.length > 0 && (
-        <Section title="Other options in this slot">
-          {options.map(({ session: o, rationale }) => {
-            const chosen = favIds.has(o.id);
-            return (
-              <View key={o.id} style={styles.listRow}>
-                <Pressable style={styles.optionTap} onPress={() => router.replace(`/session/${o.id}`)}>
-                  <Cover session={o} size={44} />
-                  <View style={styles.listBody}>
-                    <Text style={styles.listTitle} lineBreakStrategyIOS="standard" textBreakStrategy="balanced">
-                      {noOrphan(o.title)}
-                    </Text>
-                    <Text style={styles.listMeta}>
-                      {formatTime(o.startsAt)} – {formatTime(o.endsAt)} · {o.room}
-                    </Text>
-                    <Text style={styles.listMeta}>{rationale}</Text>
-                  </View>
-                </Pressable>
-                {chosen ? (
-                  <SymbolView name="star.fill" size={20} tintColor={colors.star} />
-                ) : (
-                  <Pressable onPress={() => switchTo(o)} style={styles.switch} hitSlop={8}>
-                    <Text style={styles.switchText}>Switch</Text>
-                  </Pressable>
-                )}
-              </View>
-            );
-          })}
-        </Section>
-      )}
-    </ScrollView>
+              );
+            })}
+          </Section>
+        )}
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: gutter, paddingTop: 28, paddingBottom: 48, gap: 16 },
+  content: { paddingHorizontal: gutter, paddingTop: isAndroid ? 8 : 28, paddingBottom: 48, gap: 16 },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 14 },
   badges: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   title: { ...font.display, color: colors.text },
@@ -258,7 +277,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: colors.ink,
     paddingVertical: 14,
-    borderRadius: radius.control,
+    borderRadius: radius.button,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',

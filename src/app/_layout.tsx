@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, type ComponentProps } from 'react';
+import { Platform } from 'react-native';
 
 import { AgendaProvider } from '../state/AgendaContext.tsx';
 
@@ -9,6 +10,8 @@ const SHEET: ComponentProps<typeof Stack.Screen>['options'] = {
   presentation: 'formSheet',
   sheetAllowedDetents: [0.6, 1],
   sheetGrabberVisible: true,
+  // M3 bottom sheets use the extra-large (28) corner.
+  ...(Platform.OS === 'android' && { sheetCornerRadius: 28 }),
   headerShown: false,
 };
 

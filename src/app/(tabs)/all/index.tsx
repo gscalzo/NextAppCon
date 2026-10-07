@@ -3,12 +3,13 @@ import { Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
 
+import { ButtonGroup } from '../../../components/ButtonGroup.tsx';
 import { DataStatus } from '../../../components/DataStatus.tsx';
 import { EmptyAgenda } from '../../../components/EmptyAgenda.tsx';
 import { animateNextLayout } from '../../../components/motion.tsx';
 import { NowLine } from '../../../components/NowLine.tsx';
 import { SessionRow } from '../../../components/SessionRow.tsx';
-import { colors, font, gutter, radius } from '../../../components/theme.ts';
+import { colors, font, gutter, isAndroid, radius } from '../../../components/theme.ts';
 import { TrackChip } from '../../../components/TrackChip.tsx';
 import { useNow } from '../../../components/useNow.ts';
 import { groupByDay, groupByStart, nowLineIndex } from '../../../lib/schedule.ts';
@@ -75,15 +76,27 @@ export default function AllTalksScreen() {
         ListHeaderComponent={
           <View style={styles.controls}>
             <DataStatus />
-            <SegmentedControl
-              values={dayKeys.map(formatDayLabel)}
-              selectedIndex={Math.max(0, dayKeys.indexOf(day))}
-              onChange={(e) => {
-                animateNextLayout();
-                setPickedDay(dayKeys[e.nativeEvent.selectedSegmentIndex]);
-              }}
-              style={styles.segmented}
-            />
+            {isAndroid ? (
+              <ButtonGroup
+                values={dayKeys.map(formatDayLabel)}
+                selectedIndex={Math.max(0, dayKeys.indexOf(day))}
+                onChange={(i) => {
+                  animateNextLayout();
+                  setPickedDay(dayKeys[i]);
+                }}
+                style={styles.segmented}
+              />
+            ) : (
+              <SegmentedControl
+                values={dayKeys.map(formatDayLabel)}
+                selectedIndex={Math.max(0, dayKeys.indexOf(day))}
+                onChange={(e) => {
+                  animateNextLayout();
+                  setPickedDay(dayKeys[e.nativeEvent.selectedSegmentIndex]);
+                }}
+                style={styles.segmented}
+              />
+            )}
             {tracks.length > 0 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                 <Pressable
