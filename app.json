@@ -22,6 +22,18 @@
         "expo-notifications",
         {}
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "38c05cd6-91ab-4a7e-af4c-880fef3bcd7b"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/38c05cd6-91ab-4a7e-af4c-880fef3bcd7b"
+    }
   }
 }
