@@ -33,7 +33,8 @@
     "web": "expo start --web",
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "snapshot-agenda": "node scripts/snapshot-agenda.ts"
   },
   "private": true
 }
