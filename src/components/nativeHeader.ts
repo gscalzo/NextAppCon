@@ -8,6 +8,6 @@ export const nativeHeader = {
   headerTransparent: Platform.OS === 'ios',
   headerShadowVisible: false,
   headerLargeTitleShadowVisible: false,
-  headerTintColor: colors.accent,
+  headerTintColor: colors.text,
   contentStyle: { backgroundColor: colors.bg },
 } as const;

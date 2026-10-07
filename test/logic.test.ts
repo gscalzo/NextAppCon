@@ -67,6 +67,8 @@ test('parses Sessionize All view with track, room and speakers', () => {
   assert.deepEqual(compose.speakerIds, ['s1']);
   assert.equal(swift.track, 'swiftCon');
   assert.deepEqual(swift.speakers, ['Tim Swift']);
+  assert.deepEqual(compose.speakerPhotos, ['https://cdn.sessionize.com/image/ada.png']);
+  assert.deepEqual(swift.speakerPhotos, [null]);
   assert.equal(swift.description, '');
   assert.equal(lunch.isService, true);
   assert.equal(lunch.room, '');

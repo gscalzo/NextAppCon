@@ -80,7 +80,9 @@ export function parseSessionizeSpeakers(json: unknown): Speaker[] {
 
 export function parseSessionizeAll(json: unknown): Session[] {
   const data = asAll(json);
-  const speakers = new Map((data.speakers ?? []).map((s) => [s.id, speakerName(s)]));
+  const speakers = new Map(
+    (data.speakers ?? []).map((s) => [s.id, { name: speakerName(s), photo: s.profilePicture || null }]),
+  );
   const rooms = new Map((data.rooms ?? []).map((r) => [String(r.id), r.name]));
   const trackCategory = pickTrackCategory(data.categories ?? []);
   const trackItems = new Map((trackCategory?.items ?? []).map((i) => [String(i.id), i.name]));
@@ -100,8 +102,9 @@ export function parseSessionizeAll(json: unknown): Session[] {
 
     const sessionSpeakers = (s.speakers ?? []).flatMap((sp) => {
       const id = typeof sp === 'string' ? sp : sp.id;
-      const name = typeof sp === 'string' ? speakers.get(sp) : sp.name ?? speakers.get(sp.id);
-      return name ? [{ id, name }] : [];
+      const known = speakers.get(id);
+      const name = (typeof sp === 'string' ? undefined : sp.name) ?? known?.name;
+      return name ? [{ id, name, photo: known?.photo ?? null }] : [];
     });
 
     sessions.push({
@@ -114,6 +117,7 @@ export function parseSessionizeAll(json: unknown): Session[] {
       track,
       speakers: sessionSpeakers.map((sp) => sp.name),
       speakerIds: sessionSpeakers.map((sp) => sp.id),
+      speakerPhotos: sessionSpeakers.map((sp) => sp.photo),
       isService: !!s.isServiceSession,
     });
   }

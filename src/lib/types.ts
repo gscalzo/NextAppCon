@@ -13,6 +13,8 @@ export type Session = {
   speakers: string[];
   /** Sessionize speaker ids, parallel to `speakers` where the speaker is known. */
   speakerIds: string[];
+  /** Speaker photo URLs, parallel to `speakers`; absent in agendas saved before photos. */
+  speakerPhotos?: (string | null)[];
   /** Breaks, lunch, registration: shown but not favable. */
   isService: boolean;
 };

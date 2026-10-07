@@ -1,22 +1,23 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { formatTime } from '../lib/time.ts';
-import { colors } from './theme.ts';
+import { colors, font, gutter, radius } from './theme.ts';
 
-/** Red "current time" rule, like the one in Calendar. */
+/** "Now" marker between talks: a signal-colour pill on a hairline. */
 export function NowLine({ now }: { now: number }) {
   return (
     <View style={styles.row} accessibilityLabel={`Current time ${formatTime(now)}`}>
-      <Text style={styles.time}>{formatTime(now)}</Text>
-      <View style={styles.dot} />
+      <View style={styles.pill}>
+        <Text style={styles.text}>Now {formatTime(now)}</Text>
+      </View>
       <View style={styles.line} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 6 },
-  time: { color: colors.now, fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'], marginRight: 6 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.now },
-  line: { flex: 1, height: StyleSheet.hairlineWidth * 2, backgroundColor: colors.now },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: gutter, paddingVertical: 8, gap: 8 },
+  pill: { backgroundColor: colors.now, borderRadius: radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
+  text: { ...font.caption, ...font.time, color: '#FFFFFF' },
+  line: { flex: 1, height: 1.5, borderRadius: 1, backgroundColor: colors.now },
 });
