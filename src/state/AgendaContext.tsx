@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Alert, AppState } from 'react-native';
 
+import agendaSnapshot from '../data/agenda-snapshot.json';
 import { PLAN } from '../data/plan.ts';
 import { toggled, withNote, type TalkNotes } from '../lib/personal.ts';
 import { indexPlan, seedFavourites, type PlanEntry } from '../lib/plan.ts';
@@ -16,6 +17,8 @@ const STALE_AFTER_MS = 30 * 60_000;
 const NO_SESSIONS: Session[] = [];
 const NO_SPEAKERS: Speaker[] = [];
 const PLAN_INDEX = indexPlan(PLAN);
+// Shipped with the app so a fresh install has the agenda before (or without) its first download.
+const BUNDLED_AGENDA = agendaSnapshot as AgendaCache;
 
 type Status = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string };
 
@@ -84,7 +87,7 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const [agenda, storedFavs, ids, planImported, storedNotes, attended] = await Promise.all([
+      const [storedAgenda, storedFavs, ids, planImported, storedNotes, attended] = await Promise.all([
         storage.loadAgenda(),
         storage.loadFavs(),
         storage.loadManualIds(),
@@ -92,6 +95,8 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
         storage.loadNotes(),
         storage.loadAttended(),
       ]);
+      // Custom Sessionize IDs don't match the bundled event, so those wait for the download.
+      const agenda = storedAgenda ?? (ids.length ? null : BUNDLED_AGENDA);
       // The plan is imported once; later un-favs stick.
       const favs = planImported ? new Set(storedFavs) : seedFavourites(storedFavs, PLAN);
       if (!planImported) {

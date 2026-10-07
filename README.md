@@ -6,7 +6,7 @@ A personal Expo / React Native app for the next.app devCon Berlin agenda (7–9 
 - **Where to go:** a local notification fires 5 minutes before each favourite: "Go to react nativeCon 2 · 10:20", with the title and speakers. Tapping it opens the talk.
 - **Current time:** the Berlin time and the talk running now or next, with its room, sit in a Liquid Glass bar above the tab bar (iOS 26) and in a card at the top of My plan. A red now-line runs through My plan and All talks, and running talks show LIVE.
 - **All talks:** every session, by day (segmented control), sub-conference and native search. Long-press a talk for a preview plus Favourite / Switch actions.
-- **Offline:** the agenda is downloaded from Sessionize and cached on the phone. It refreshes when it's older than 30 minutes and you're online, and you can pull to refresh.
+- **Offline:** the app ships with a snapshot of the agenda (talks and speakers), so it works on first launch with no network. When online it downloads the latest agenda from Sessionize and caches it on the phone, refreshing when it's older than 30 minutes, and you can pull to refresh.
 - **Abstract and speaker bio:** tap any talk to open its sheet with the full abstract and the speakers. Tap a speaker's name or card for their bio, photo, links and other talks.
 - **Clash warning:** faving a talk that overlaps a favourite offers **Keep both / Replace / Cancel**; clashing favourites are marked CLASH.
 - **Native UI:** native tabs and large-title headers, form sheets, SF Symbols, haptics, system colours with dark mode, and Liquid Glass on iOS 26 (`expo-glass-effect`; plain cards on older iOS).
@@ -15,7 +15,7 @@ All times are shown in Berlin time, whatever time zone the phone is in.
 
 ## Where the data comes from
 
-The agenda comes from the conference's Sessionize event: `https://sessionize.com/api/v2/yak5yl8m/view/All`. Talk abstracts and speaker bios, taglines, photos and links come from the same feed. To point the app at another event, open **Settings → Sessionize ID** and paste its ID or any `sessionize.com/api/v2/…` URL.
+The agenda comes from the conference's Sessionize event: `https://sessionize.com/api/v2/yak5yl8m/view/All`. Talk abstracts and speaker bios, taglines, photos and links come from the same feed. A snapshot of it ships in `src/data/agenda-snapshot.json`; refresh it before a build with `npm run snapshot-agenda`. To point the app at another event, open **Settings → Sessionize ID** and paste its ID or any `sessionize.com/api/v2/…` URL.
 
 ## Run it on your iPhone (Expo Go)
 
@@ -34,7 +34,7 @@ npx eas-cli@latest update:configure     # one-time: links the project and sets t
 npx eas-cli@latest update --branch main --message "agenda app"
 ```
 
-Open the update in Expo Go: sign in to the same Expo account in Expo Go, or use the QR code on the update's page on expo.dev. Then open the app once while online so it downloads and caches the agenda.
+Open the update in Expo Go: sign in to the same Expo account in Expo Go, or use the QR code on the update's page on expo.dev. The agenda snapshot is in the bundle, so the app works offline straight away.
 
 ## Development
 
